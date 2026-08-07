@@ -15,24 +15,45 @@ npm 11.17.0, Playwright 1.54.2 driving its bundled Chromium build 1181 in headle
 | Command | Result |
 | --- | --- |
 | `npm test` | 23 tests across 5 files pass (movement, input, settings, encounters, run state) |
-| `npm run build` | `tsc -b` clean; Vite emits 12 modules, 513.7 kB JS (133.7 kB gzip) |
-| `npm run test:browser` | 2 Playwright tests pass: full start-to-finish run and lifecycle pause |
-| `npm run audit` | 135,243 B total gzip transfer; no remote runtime URLs |
+| `npm run build` | `tsc -b` clean; no Rollup size warning; app 46.2 kB (15.5 kB gzip) plus a separate three chunk 466.9 kB (117.9 kB gzip) |
+| `npm run test:browser` | 3 Playwright tests pass: normal-route play, full completion, lifecycle pause |
+| `npm run audit` | 135 kB total gzip transfer; no remote runtime URLs |
 
-The browser run drives the real game: both progression gates hold against ordinary movement,
-all five motes and three beacons register, the guardian is baited into each armed conductor and
-struck three times, and the completion panel reports an elapsed time. The run asserts zero
-console errors and zero non-local network requests.
+### What the browser tests actually do
+
+**Normal route, no teleporting at all.** One test plays the opening with real key events only —
+`KeyW/A/S/D` to run and `Space` to jump — from the spawn point to all three beacons. It asserts
+each beacon registers as it is reached, that waking the third moves the run to the ascent phase,
+and that the barrier which stopped ordinary movement at `z = -12` is then walkable. This is the
+evidence that the game is completable by playing it rather than by moving the player around.
+
+**Full completion, teleport-assisted.** A second test covers the whole run through to the crest.
+It uses the debug teleport to place the player at each objective, because scripting the upper
+ascent — 8-unit jumps between floating platforms, a moving ferry, and a wall-kick section — is
+not reliably automatable. Everything else in it is real: both gates are pushed against with held
+keys and hold, the guardian is baited into each armed conductor and struck by a real ground-pound
+three times, and the completion panel reports elapsed time. Zero console errors, zero non-local
+requests.
+
+### Measured performance
+
+Measured once, in this container: **25.8 fps** at 1440×900 on the `high` quality tier, sampling
+`requestAnimationFrame` for 5 seconds during play. This machine has **no GPU** — WebGL resolves to
+`ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)), SwiftShader driver)`, a pure software
+rasteriser. This figure is therefore a software-rendering floor and says nothing about hardware
+frame rate. It is not evidence for the 60 fps laptop target below.
 
 ## Automated acceptance
 
-Run `npm run validate`. Unit coverage includes mixed input normalization and clearing, settings persistence/conflicts/fallback, deterministic movement, capped healing, spitter wind-up/projectile travel/damage, durable progression/recovery, and guardian causality. Playwright launches the application and covers both physical gates, proximity-driven objectives, natural guardian telegraph/charge/conductor exposure and movement-attack hits, crest completion, lifecycle pause with an explicit zero-movement/no-held-actions assertion, console errors, and remote network requests. The production audit inventories every emitted file, computes gzip size, rejects runtime HTTP(S) URLs in source, and enforces the 15 MiB initial-transfer ceiling.
+Run `npm run validate`. Unit coverage includes mixed input normalization and clearing, settings persistence/conflicts/fallback, deterministic movement, capped healing, spitter wind-up/projectile travel/damage, durable progression/recovery, and guardian causality. Playwright launches the application and covers a keyboard-only normal-route opening, both physical gates, proximity-driven objectives, natural guardian telegraph/charge/conductor exposure and movement-attack hits, crest completion, lifecycle pause with an explicit zero-movement/no-held-actions assertion, console errors, and remote network requests. The production audit inventories every emitted file, computes gzip size, rejects runtime HTTP(S) URLs in source, and enforces the 15 MiB initial-transfer ceiling.
 
 ## Manual acceptance matrix
 
-The automated run above covers headless Chromium only. The following remains a release-device
-checklist: Firefox, Safari, Edge, and every physical mobile/gamepad observation below are still
-unexecuted, and no frame-rate figure has been measured on any hardware.
+The automated run above covers headless Chromium only, on a GPU-less machine with no physical
+input devices attached. The following remains a release-device checklist and **cannot be closed
+from this container**: Firefox, Safari and Edge are not installed here; there is no phone, no
+tablet and no gamepad to attach; and there is no GPU, so no meaningful frame-rate figure can be
+produced for any of the targets below. These rows need a human on real hardware.
 
 | Coverage | Required observation |
 | --- | --- |

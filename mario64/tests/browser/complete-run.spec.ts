@@ -2,6 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 type Snapshot = {
   position: { x: number; y: number; z: number };
   phase: string;
+  beacons: string[];
+  motes: string[];
   guardian: {
     mode: string;
     hits: number;
@@ -33,6 +35,63 @@ const api = (page: Page, method: "snapshot" | "teleport", arg?: unknown) =>
   ) as Promise<Snapshot>;
 const teleport = (page: Page, p: { x: number; y: number; z: number }) =>
   api(page, "teleport", p);
+
+type Waypoint = { x: number; y: number; z: number; hop?: boolean; reach?: number };
+// This test never moves the camera, so its yaw stays at 0 and W is -z while D is +x.
+const keysFor = (at: Snapshot["position"], to: Waypoint) => {
+  const keys = new Set<string>();
+  if (to.x - at.x > 0.35) keys.add("KeyD");
+  else if (to.x - at.x < -0.35) keys.add("KeyA");
+  if (to.z - at.z < -0.35) keys.add("KeyW");
+  else if (to.z - at.z > 0.35) keys.add("KeyS");
+  return keys;
+};
+/** Runs and jumps the player along a route using only real key events — never teleports. */
+async function walk(page: Page, held: Set<string>, route: Waypoint[]) {
+  for (const to of route) {
+    const deadline = Date.now() + 25_000;
+    let lastJump = 0,
+      closest = Infinity,
+      stalled = 0;
+    for (;;) {
+      const at = (await api(page, "snapshot")).position;
+      const gap = Math.hypot(at.x - to.x, at.z - to.z);
+      if (gap < (to.reach ?? 1.3) && Math.abs(at.y - to.y) < 2.5) break;
+      if (Date.now() > deadline)
+        throw new Error(
+          `ran out of time walking to ${JSON.stringify(to)}; stopped at ${JSON.stringify(at)}`,
+        );
+      if (gap < closest - 0.15) {
+        closest = gap;
+        stalled = 0;
+      } else stalled++;
+      const want = keysFor(at, to);
+      for (const key of [...held])
+        if (!want.has(key)) {
+          await page.keyboard.up(key);
+          held.delete(key);
+        }
+      for (const key of want)
+        if (!held.has(key)) {
+          await page.keyboard.down(key);
+          held.add(key);
+        }
+      // Jump to climb, to clear a gap, or to work loose when progress stops.
+      if (
+        (to.hop || to.y - at.y > 0.35 || stalled > 7) &&
+        Date.now() - lastJump > 480
+      ) {
+        lastJump = Date.now();
+        await page.keyboard.press("Space", { delay: 25 });
+      }
+      await page.waitForTimeout(45);
+    }
+  }
+  for (const key of [...held]) {
+    await page.keyboard.up(key);
+    held.delete(key);
+  }
+}
 test("real gates and encounter complete in the running browser game", async ({
   page,
 }) => {
@@ -105,7 +164,8 @@ test("real gates and encounter complete in the running browser game", async ({
       y: exposed.guardian.position.y + 1,
       z: exposed.guardian.position.z,
     });
-    await page.keyboard.press("ControlLeft");
+    // ShiftLeft is the crouch/ground-pound binding; pressing it in the air is a real attack.
+    await page.keyboard.press("ShiftLeft");
     await expect
       .poll(async () => (await api(page, "snapshot")).guardian.hits)
       .toBe(hit);
@@ -126,4 +186,51 @@ test("blur pauses and clears held browser input", async ({ page }) => {
   expect((await api(page, "snapshot")).input.move).toEqual({ x: 0, y: 0 });
   expect(Object.values((await api(page, "snapshot")).input.held)).not.toContain(true);
   await page.keyboard.up("KeyW");
+});
+test("the beacon route is completable with ordinary keyboard movement", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/?test=1");
+  await page.getByRole("button", { name: "Begin adventure" }).click();
+  await expect
+    .poll(() => page.evaluate(() => "__galecrestTest" in window))
+    .toBe(true);
+  // Nothing below teleports: the player runs and jumps the whole route on real key events.
+  const held = new Set<string>();
+  await walk(page, held, [
+    { x: -6, y: 0.8, z: 5 },
+    { x: -12, y: 1.1, z: 4, hop: true },
+    { x: -19, y: 1.2, z: 2 },
+  ]);
+  await expect
+    .poll(async () => (await api(page, "snapshot")).beacons.length)
+    .toBe(1);
+  await walk(page, held, [
+    { x: -8, y: 1.1, z: 5 },
+    { x: 0, y: 0.8, z: 5, hop: true },
+    { x: 9, y: 1.5, z: 5, hop: true },
+    { x: 17, y: 1.6, z: 6 },
+  ]);
+  await expect
+    .poll(async () => (await api(page, "snapshot")).beacons.length)
+    .toBe(2);
+  await walk(page, held, [
+    { x: 2, y: 0.8, z: 5 },
+    { x: 0, y: 0.8, z: 3.5 },
+    { x: 0, y: 1.8, z: -3, hop: true, reach: 2 },
+    { x: 0, y: 1.9, z: -10 },
+  ]);
+  const woken = await api(page, "snapshot");
+  expect(woken.beacons.length).toBe(3);
+  // Waking all three is what opens the ascent gate, so the phase moved on through play alone.
+  expect(woken.phase).toBe("ascent");
+  // And the barrier that stopped ordinary movement at z=-12 above is now walkable.
+  await walk(page, held, [{ x: -7, y: 2, z: -14, hop: true, reach: 2 }]);
+  expect((await api(page, "snapshot")).position.z).toBeLessThan(-12.5);
+  expect(errors).toEqual([]);
 });
