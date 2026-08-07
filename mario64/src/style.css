@@ -1,0 +1,42 @@
+:root{font-family:Inter,system-ui,sans-serif;color:#f9f2d2;background:#16252c;--touch-scale:1}
+*{box-sizing:border-box}
+html,body,#app,#stage{margin:0;width:100%;height:100%;overflow:hidden}
+button,input{font:inherit}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.panel{position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);width:min(92%,34rem);padding:clamp(1.3rem,4vw,2.5rem);border:1px solid #f9f2d255;border-radius:1.2rem;background:#16252ce8;box-shadow:0 1rem 4rem #061419aa;text-align:center;backdrop-filter:blur(12px)}
+h1{font-size:clamp(2.4rem,8vw,4.5rem);line-height:.9;margin:.25em 0;color:#ffd46d}
+.eyebrow{text-transform:uppercase;letter-spacing:.16em;font-size:.75rem}
+button{border:0;border-radius:999px;padding:.8rem 1.2rem;margin:.25rem;background:#ffd46d;color:#16252c;font-weight:750;cursor:pointer}
+.secondary{background:transparent;color:#f9f2d2;border:1px solid #f9f2d288}
+/* Programmatic focus does not raise :focus-visible, so gamepad menu selection needs its own
+   marker or a controller player cannot see which entry is highlighted. */
+.pad-focus{outline:3px solid #ffd46d;outline-offset:3px}
+#hud{position:absolute;top:max(1rem,env(safe-area-inset-top));left:max(1rem,env(safe-area-inset-left));right:max(1rem,env(safe-area-inset-right));display:flex;gap:.8rem;align-items:center;text-shadow:0 2px 5px #000}
+/* Objective, guidance, health and stats are separate readouts: space them so they do not
+   run together into one sentence, and let them wrap instead of colliding on narrow screens. */
+#hud>div{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .8rem;min-width:0}
+#hud span{opacity:.85}
+#hud button{margin-left:auto}
+#hud[hidden]{display:none}
+dialog{color:#f9f2d2;background:#16252cf5;border:1px solid #f9f2d255;border-radius:1rem;max-width:31rem}
+dialog::backdrop{background:#071217bb}
+dialog label{display:block;margin:1rem;text-align:left}
+dialog input[type=range]{width:100%}
+.note{font-size:.82rem;opacity:.75}
+#touch{position:absolute;inset:0;pointer-events:none;touch-action:none}
+#touch>*{pointer-events:auto}
+#stick{position:absolute;width:calc(8rem * var(--touch-scale));height:calc(8rem * var(--touch-scale));left:max(1.2rem,env(safe-area-inset-left));bottom:max(1.2rem,env(safe-area-inset-bottom));border:2px solid #fff8;border-radius:50%;background:#16333b66;touch-action:none}
+#stick i{position:absolute;width:35%;height:35%;inset:32%;border-radius:50%;background:#ffd46daa}
+#touch-jump{position:absolute;right:max(1.5rem,env(safe-area-inset-right));bottom:max(1.5rem,env(safe-area-inset-bottom));width:calc(5rem * var(--touch-scale));height:calc(5rem * var(--touch-scale))}
+#touch-pause{position:absolute;right:max(1rem,env(safe-area-inset-right));top:max(1rem,env(safe-area-inset-top))}
+#rotate{position:absolute;inset:0;display:grid;place-items:center;background:#16252c;font-size:1.3rem;text-align:center;padding:2rem}
+#rotate[hidden],#touch[hidden]{display:none}
+.error{color:#fff}
+fieldset{border:1px solid #f9f2d244;border-radius:.7rem;margin:.8rem 0}
+.binding{display:grid;grid-template-columns:1fr minmax(7rem,auto) minmax(5rem,auto);align-items:center;gap:.4rem;text-align:left}
+.binding button,.binding label{margin:.2rem}.binding select,select{font:inherit;background:#243c45;color:#fff;border:1px solid #fff6;border-radius:.35rem;padding:.35rem}
+#controls{max-width:36rem;max-height:92dvh;overflow:auto}
+#touch-action,#touch-dive{position:absolute;width:calc(4.2rem * var(--touch-scale));height:calc(4.2rem * var(--touch-scale));bottom:max(6.3rem,calc(env(safe-area-inset-bottom) + 5rem))}
+#touch-action{right:max(5.8rem,calc(env(safe-area-inset-right) + 5.5rem))}#touch-dive{right:max(1rem,env(safe-area-inset-right));bottom:max(7.2rem,calc(env(safe-area-inset-bottom) + 6.5rem))}
+@media(max-height:480px){#hud{font-size:.82rem}.panel{padding:1rem}#stick{width:calc(6.5rem * var(--touch-scale));height:calc(6.5rem * var(--touch-scale))}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}

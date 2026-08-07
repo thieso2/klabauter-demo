@@ -1,0 +1,6 @@
+import {readdir,readFile,stat} from 'node:fs/promises'; import {join,relative} from 'node:path'; import {gzipSync} from 'node:zlib';
+const root=new URL('../',import.meta.url).pathname,dist=join(root,'dist');
+async function files(dir){return (await Promise.all((await readdir(dir,{withFileTypes:true})).map(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]))).flat()}
+const emitted=await files(dist);let compressed=0;console.log('Production asset inventory');for(const file of emitted){const bytes=(await stat(file)).size,gzip=gzipSync(await readFile(file)).length;compressed+=gzip;console.log(`${relative(dist,file)}\t${bytes} B\t${gzip} B gzip\tgenerated/bundled locally`)}
+const source=await files(join(root,'src'));const remote=[];for(const file of source){const contents=await readFile(file,'utf8');for(const match of contents.matchAll(/https?:\/\/[^'"`\s)]+/g))remote.push(`${relative(root,file)}: ${match[0]}`)}
+console.log(`Total initial gzip transfer: ${compressed} B (${(compressed/1024/1024).toFixed(2)} MiB)`);if(remote.length)throw new Error(`Remote runtime URLs found:\n${remote.join('\n')}`);if(compressed>=15*1024*1024)throw new Error('15 MiB compressed transfer budget exceeded');console.log('PASS: no remote runtime URLs; compressed transfer is below 15 MiB.');

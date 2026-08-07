@@ -1,0 +1,73 @@
+import type { Action } from "./input";
+export type Quality = "auto" | "low" | "medium" | "high";
+export interface Settings {
+  masterVolume: number;
+  musicVolume: number;
+  effectsVolume: number;
+  quality: Quality;
+  sensitivity: number;
+  invertY: boolean;
+  touchSensitivity: number;
+  touchScale: number;
+  reducedMotion: boolean;
+  assist: boolean;
+  keyboard: Record<Action, string>;
+  gamepad: Record<Action, number>;
+}
+export const defaults: Settings = {
+  masterVolume: 0.8,
+  musicVolume: 0.45,
+  effectsVolume: 0.8,
+  quality: "auto",
+  sensitivity: 1,
+  invertY: false,
+  touchSensitivity: 1,
+  touchScale: 1,
+  reducedMotion: false,
+  assist: false,
+  keyboard: {
+    jump: "Space",
+    crouch: "ShiftLeft",
+    dive: "KeyE",
+    recenter: "KeyR",
+    pause: "Escape",
+  },
+  gamepad: { jump: 0, crouch: 2, dive: 1, recenter: 11, pause: 9 },
+};
+export interface StorageLike {
+  getItem(k: string): string | null;
+  setItem(k: string, v: string): void;
+}
+export function loadSettings(storage?: StorageLike): Settings {
+  try {
+    if (!storage) return structuredClone(defaults);
+    const raw = storage.getItem("galecrest.settings");
+    if (!raw) return structuredClone(defaults);
+    const parsed = JSON.parse(raw);
+    return {
+      ...structuredClone(defaults),
+      ...parsed,
+      keyboard: { ...defaults.keyboard, ...parsed.keyboard },
+      gamepad: { ...defaults.gamepad, ...parsed.gamepad },
+    };
+  } catch {
+    return structuredClone(defaults);
+  }
+}
+export function saveSettings(value: Settings, storage?: StorageLike): boolean {
+  try {
+    storage?.setItem("galecrest.settings", JSON.stringify(value));
+    return !!storage;
+  } catch {
+    return false;
+  }
+}
+export function remap<T extends string | number>(
+  bindings: Record<Action, T>,
+  action: Action,
+  value: T,
+): Record<Action, T> | null {
+  if (Object.entries(bindings).some(([a, v]) => a !== action && v === value))
+    return null;
+  return { ...bindings, [action]: value };
+}
