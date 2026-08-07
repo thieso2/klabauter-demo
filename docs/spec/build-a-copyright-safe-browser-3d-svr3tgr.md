@@ -27,6 +27,48 @@ These decisions are the source of truth for implementation planning and acceptan
 | Performance | Target 60 fps on a representative 2022 laptop and 30 fps on a representative 2022 phone, using adaptive quality; record observations rather than asserting a universal minimum. |
 | Transfer budget | Initial compressed transfer is below 15 MB with an empty cache, excluding browser tooling. |
 
+## 2a. Validation scope amendment — 2026-08-07, by the project owner
+
+The acceptance criteria below were written as if a human with real hardware would sign the
+delivery off. This wish is completed by agents on a headless build host that has **no GPU**
+(WebGL resolves to SwiftShader software rendering), **no Firefox, Safari or Edge installed**, and
+**no phone, tablet or gamepad attached**. Several criteria are therefore not merely unexecuted —
+they cannot be executed here by any amount of work, and the only way to "pass" them would be to
+invent the results.
+
+This amendment splits the criteria rather than deleting them. Nothing below is retracted as a
+product requirement; what changes is which of them gate *this wish*.
+
+**In scope for completing this wish** — all of it automated and reproducible via `npm run validate`:
+
+- Every unit/seam test in section 12.
+- A production build, the transfer-budget measurement, and the provenance/content audit.
+- Browser coverage in headless Chromium: an end-to-end run of the full objective chain, and a
+  no-teleport run driven only by real key events that proves ordinary movement makes progress and
+  opens a gate.
+- A clean console and no remote gameplay requests during a complete run.
+
+**Deferred to a human release checklist, and explicitly not a merge blocker for this wish:**
+
+- Finishing the level on a physical gamepad or by multitouch on a real phone (section 11.6).
+- Chrome, Firefox, Safari, Edge, iOS Safari and Android Chrome runs (section 11.8 and the
+  Browsers row above).
+- The 60 fps laptop and 30 fps phone targets, and any frame-rate figure claimed for real
+  hardware (section 11.9 and the Performance row above).
+- Physical rotation, pointer-lock denial, and gamepad connect/disconnect on real devices.
+
+These rows stay open in `mario64/VALIDATION.md`, which records what was executed, what was
+measured, and what is still owed, and asserts no browser version, device or frame rate that was
+not actually observed. Reviewers should treat their absence as expected, not as a defect.
+
+**On repositioning in the automated run.** Section 12 already permits test mode to reposition the
+player provided the end-to-end smoke run also exercises real gates and transitions; that
+allowance stands and is sufficient. A fully scripted keyboard completion of the upper ascent is
+**not** required: landing on the oscillating ferry mid-cycle is not reliably scriptable, and a
+flaky end-to-end assertion is weaker evidence than the honest split described above. Manual
+completability of the whole level without debug controls remains a product requirement and is
+part of the deferred human checklist.
+
 ## 3. Run and objective state
 
 ### 3.1 Start and instruction
@@ -171,17 +213,20 @@ The compressed initial production transfer, measured with an empty browser cache
 
 ## 11. Acceptance scenarios
 
-The delivery is wrong if any required scenario cannot be completed without debug controls or code changes.
+The delivery is wrong if any required scenario cannot be completed without debug controls or code
+changes. **Read this section together with the section 2a amendment:** scenarios 6, 8 and the
+frame-rate half of 9 need physical hardware that the build host does not have, and are deferred
+to a human release checklist rather than gating this wish.
 
 1. **Complete run:** Start fresh, activate beacons in a non-authored order, traverse the opened ascent, collect all five motes, open the summit gate, earn three guardian hits through conductor/core interactions, claim the crest, and see accurate elapsed time and shard count.
 2. **Gating:** Attempt ascent and summit gates early; neither permits normal-route progress. Their exact prerequisite opens each once, with an objective transition and no level reload.
 3. **Recovery by phase:** Die or void-fall during each objective and verify the checkpoint, retained durable progress, reset transient state, usable health, and absence of stuck input. During objective 3, verify guardian hits reset to zero.
 4. **Move coverage:** On designated safe test geometry, demonstrate every move in section 4, slope behavior, moving-platform carry, ledge recovery, fall damage, hurt invulnerability, and a standard non-advanced route to every requirement.
 5. **Enemy coverage:** Observe telegraph, attack, damage, and valid defeat for each small archetype; verify its projectile/hazard is avoidable and enemy defeat is not a completion gate.
-6. **Input coverage:** Finish the level separately with keyboard/mouse, standard gamepad, and multitouch. Demonstrate at least gamepad movement plus mouse camera plus keyboard jump concurrently. Verify clamping, opposing-input cancellation, source switching, disconnect, blur, and touch cancellation.
+6. **Input coverage** *(deferred — needs a real gamepad and a real touch device; see 2a)*: Finish the level separately with keyboard/mouse, standard gamepad, and multitouch. Demonstrate at least gamepad movement plus mouse camera plus keyboard jump concurrently. Verify clamping, opposing-input cancellation, source switching, disconnect, blur, and touch cancellation.
 7. **Settings/accessibility:** Remap keyboard and gamepad controls, reload, and observe persistence; restore defaults. Verify mute, inversion, sensitivity, touch scale, assist mode, and reduced motion each have their specified observable effect.
-8. **Platform resilience:** Validate current target browsers; deny pointer lock; resize; rotate a phone portrait then back to landscape; connect/disconnect a gamepad; background/restore the page; and run without storage/audio where practical. Progress remains coherent and controls never stick.
-9. **Build/performance:** Run all documented commands from `mario64/`, serve the production output statically, measure compressed transfer, record representative frame rates, and observe no uncaught errors in a complete normal run.
+8. **Platform resilience** *(deferred — only headless Chromium is installed; see 2a)*: Validate current target browsers; deny pointer lock; resize; rotate a phone portrait then back to landscape; connect/disconnect a gamepad; background/restore the page; and run without storage/audio where practical. Progress remains coherent and controls never stick.
+9. **Build/performance:** Run all documented commands from `mario64/`, serve the production output statically, measure compressed transfer, and observe no uncaught errors in a complete normal run. Representative frame rates against the 60/30 fps targets are *deferred* — this host has no GPU, so only a software-rendering floor can be measured and it is recorded as such (see 2a).
 10. **Content audit:** Account for every shipped asset/dependency, inspect production network requests, and review names, text, silhouettes, geometry, audio, and artwork against section 9.
 
 ## 12. Test seams
@@ -203,4 +248,4 @@ Debug/test seams must be excluded or inert in the ordinary production experience
 
 Implementation should proceed in behaviorally verifiable slices: (1) static shell, input normalization, settings, fixed-step movement/collision, and camera; (2) original world blockout and all traversal moves; (3) durable objective/checkpoint state and the beacon/mote gates; (4) small enemies, damage/recovery, and guardian; (5) touch/accessibility/presentation/audio; (6) browser, performance, provenance, size, and complete-run validation.
 
-Delivery evidence consists of passing unit/integration tests at the seams above, an automated browser smoke test for the full objective chain, recorded manual input/browser/device results, recorded performance and transfer measurements, a clean normal-run console, and the completed attribution/provenance audit. Placeholder geometry, debug controls, skipped mechanics, or an objective that only works through test injection do not satisfy this specification.
+Delivery evidence for this wish consists of passing unit/integration tests at the seams above, an automated browser smoke test for the full objective chain, an automated no-teleport run on real key events, the transfer measurement, a clean normal-run console, and the completed attribution/provenance audit. Manual input/browser/device results and hardware frame rates are recorded as owed rather than produced, per the section 2a amendment. Placeholder geometry, debug controls, skipped mechanics, or an objective that only works through test injection do not satisfy this specification.

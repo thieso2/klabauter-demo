@@ -49,6 +49,10 @@ Run `npm run validate`. Unit coverage includes mixed input normalization and cle
 
 ## Manual acceptance matrix
 
+These rows are deferred by the section 2a amendment in
+`docs/spec/build-a-copyright-safe-browser-3d-svr3tgr.md`: they remain product requirements and a
+release checklist, but they do not gate this wish, because the build host cannot execute them.
+
 The automated run above covers headless Chromium only, on a GPU-less machine with no physical
 input devices attached. The following remains a release-device checklist and **cannot be closed
 from this container**: Firefox, Safari and Edge are not installed here; there is no phone, no
