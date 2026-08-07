@@ -886,8 +886,17 @@ export class Game {
         );
     }
     const f = this.input.sample();
+    // A mouse click is shorter than a frame often enough that releasing it immediately would be
+    // missed. Taps are held until exactly one sample has seen them, then released here.
+    for (const a of this.mouseTaps) this.input.setButton("mouse", a, false);
+    this.mouseTaps.clear();
     if (f.pressed.has("pause")) this.onPause();
     return f;
+  }
+  private mouseTaps = new Set<Action>();
+  private tapMouse(action: Action) {
+    this.input.setButton("mouse", action, true);
+    this.mouseTaps.add(action);
   }
   private orbit(f: FrameInput) {
     if (f.pressed.has("recenter")) this.yaw = this.state.facing + Math.PI;
@@ -938,6 +947,9 @@ export class Game {
   testSnapshot() {
     return {
       position: { ...this.state.position },
+      move: this.state.state,
+      facing: this.state.facing,
+      yaw: this.yaw,
       phase: this.run.phase,
       beacons: [...this.run.beacons],
       motes: [...this.run.motes],
@@ -1016,26 +1028,47 @@ export class Game {
     let drag = false,
       px = 0,
       py = 0;
+    // The primary button both dives and orbits, so the two are told apart by movement: a press
+    // that stays put is a dive, a press that travels is a camera drag and dives not at all.
+    let travelled = 0,
+      diveButton = false;
     this.renderer.domElement.addEventListener("pointerdown", (e) => {
       if (e.pointerType === "mouse") {
-        if (e.button === 0) this.input.setButton("mouse", "dive", true);
+        diveButton = e.button === 0;
+        travelled = 0;
         drag = true;
         px = e.clientX;
         py = e.clientY;
+        // Middle button is the specified camera recenter; stop the browser autoscroll it would
+        // otherwise start, which swallows the following pointermove events.
+        if (e.button === 1) {
+          this.tapMouse("recenter");
+          e.preventDefault();
+        }
         this.renderer.domElement.setPointerCapture(e.pointerId);
       }
     });
     this.renderer.domElement.addEventListener("pointermove", (e) => {
       if (drag) {
+        travelled += Math.abs(e.clientX - px) + Math.abs(e.clientY - py);
         this.input.setCamera("mouse", { x: e.clientX - px, y: e.clientY - py });
         px = e.clientX;
         py = e.clientY;
       }
     });
     this.renderer.domElement.addEventListener("pointerup", () => {
+      if (diveButton && travelled <= 6) this.tapMouse("dive");
       drag = false;
-      this.input.setButton("mouse", "dive", false);
+      diveButton = false;
     });
+    this.renderer.domElement.addEventListener("pointercancel", () => {
+      drag = false;
+      diveButton = false;
+    });
+    // Orbiting with the secondary button must not raise the browser menu mid-drag.
+    this.renderer.domElement.addEventListener("contextmenu", (e) =>
+      e.preventDefault(),
+    );
     this.renderer.domElement.addEventListener(
       "wheel",
       (e) => {

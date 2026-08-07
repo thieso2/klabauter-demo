@@ -1,6 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 type Snapshot = {
   position: { x: number; y: number; z: number };
+  move: string;
+  facing: number;
+  yaw: number;
   phase: string;
   beacons: string[];
   motes: string[];
@@ -419,4 +422,67 @@ test("falling into the void during the summit fight restarts the guardian", asyn
     .toBe(0);
   // Durable progress survives: the run is still in the summit phase, not sent back.
   expect((await api(page, "snapshot")).phase).toBe("summit");
+});
+test("mouse camera drag does not dive, and middle click recenters", async ({
+  page,
+}) => {
+  await page.goto("/?test=1");
+  await page.getByRole("button", { name: "Begin adventure" }).click();
+  await expect
+    .poll(() => page.evaluate(() => "__galecrestTest" in window))
+    .toBe(true);
+  const canvas = page.locator("#stage canvas");
+  const box = (await canvas.boundingBox())!;
+  const mid = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+
+  // Run, so a dive would be unmistakable: it turns the run into a slide.
+  await page.keyboard.down("KeyW");
+  await page.waitForTimeout(400);
+
+  // Dragging with the primary button orbits and must not trigger the dive on that same button.
+  await page.mouse.move(mid.x, mid.y);
+  await page.mouse.down();
+  const seen: string[] = [];
+  for (let i = 1; i <= 6; i++) {
+    await page.mouse.move(mid.x + i * 12, mid.y);
+    seen.push((await api(page, "snapshot")).move);
+  }
+  await page.mouse.up();
+  await page.waitForTimeout(120);
+  seen.push((await api(page, "snapshot")).move);
+  expect(seen).not.toContain("dive");
+  expect(seen).not.toContain("slide");
+  const dragged = await api(page, "snapshot");
+  expect(dragged.yaw).not.toBe(0);
+
+  // A primary click that stays put is a dive: running plus dive resolves to a slide.
+  await page.mouse.click(mid.x, mid.y);
+  await expect
+    .poll(async () => (await api(page, "snapshot")).move)
+    .toMatch(/dive|slide/);
+  await page.keyboard.up("KeyW");
+
+  // Let the player coast to a stop first: facing only stops drifting once it is still, and the
+  // recenter is defined against the facing at the moment it is pressed.
+  await expect
+    .poll(async () => (await api(page, "snapshot")).move)
+    .toMatch(/idle|land/);
+  await page.waitForTimeout(200);
+  const settled = await api(page, "snapshot");
+
+  // Middle click is the specified recenter: the camera snaps behind the player.
+  await page.mouse.move(mid.x, mid.y);
+  await page.mouse.down({ button: "middle" });
+  await page.mouse.up({ button: "middle" });
+  const behind = settled.facing + Math.PI;
+  await expect
+    .poll(async () =>
+      Math.abs(
+        Math.atan2(
+          Math.sin((await api(page, "snapshot")).yaw - behind),
+          Math.cos((await api(page, "snapshot")).yaw - behind),
+        ),
+      ),
+    )
+    .toBeLessThan(0.05);
 });
