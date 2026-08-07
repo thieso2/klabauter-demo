@@ -739,11 +739,12 @@ export class Game {
     this.state = initialPlayer(CHECKPOINTS[this.run.checkpoint]);
     this.state.state = "recover";
     this.state.stun = this.settings.assist ? 0.15 : 0.35;
-    this.encounter = resetTransient(
-      this.encounter,
-      defeat && this.run.phase === "summit",
-    );
-    this.run = reduceRun(this.run, { type: "recover" });
+    // Any objective-three recovery clears the guardian, not only being defeated by it: falling
+    // into the void mid-fight must restart the encounter rather than bank the hits already landed.
+    this.encounter = resetTransient(this.encounter, this.run.phase === "summit");
+    this.run = reduceRun(this.run, {
+      type: defeat ? "defeat" : "void",
+    });
     this.syncEntities();
   }
   private syncEntities() {

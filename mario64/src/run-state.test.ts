@@ -23,6 +23,20 @@ describe('run state',()=>{
   state=MOTE_IDS.slice(1).reduce((s,id)=>reduceRun(s,{type:'mote',id}),recovered);
   expect(CHECKPOINTS[state.checkpoint]).toEqual({x:0,y:19,z:-52});
  });
+ it('keeps durable progress through both defeat and void recovery, and names the cause',()=>{
+  const played=send([...BEACON_IDS.map(id=>({type:'beacon' as const,id})),...MOTE_IDS.map(id=>({type:'mote' as const,id})),{type:'shard',id:'s1'}]);
+  expect(played).toMatchObject({phase:'summit',checkpoint:'summit'});
+  const durable={phase:'summit',beacons:[...BEACON_IDS],motes:[...MOTE_IDS],shards:['s1'],checkpoint:'summit'};
+  const defeated=reduceRun(played,{type:'defeat'});
+  const fell=reduceRun(played,{type:'void'});
+  expect(defeated).toMatchObject(durable);
+  expect(fell).toMatchObject(durable);
+  expect(defeated.feedback).toMatch(/Defeated/);
+  expect(fell.feedback).toMatch(/Fell/);
+  // Each recovery is an observable event, so the HUD re-announces it rather than going silent.
+  expect(defeated.feedbackSerial).toBe(played.feedbackSerial+1);
+  expect(fell.feedbackSerial).toBe(played.feedbackSerial+1);
+ });
  it('runs a monotonic timer and ignores duplicate optional shards',()=>{
   const state=send([{type:'tick',seconds:2},{type:'tick',seconds:-1},{type:'shard',id:'a'},{type:'shard',id:'a'},{type:'stop-timer'},{type:'tick',seconds:4}]);
   expect(state.elapsed).toBe(2);expect(state.shards).toEqual(['a']);expect(state.timerRunning).toBe(false);

@@ -368,3 +368,55 @@ test("simultaneous touches stay independent and cancelled touches release", asyn
   await fire("#touch-jump", "pointercancel", 1);
   expect((await input()).held.jump).toBe(false);
 });
+test("falling into the void during the summit fight restarts the guardian", async ({
+  page,
+}) => {
+  await page.goto("/?test=1");
+  await page.getByRole("button", { name: "Begin adventure" }).click();
+  await expect
+    .poll(() => page.evaluate(() => "__galecrestTest" in window))
+    .toBe(true);
+  for (const p of [
+    { x: 17, y: 2.4, z: 6 },
+    { x: -19, y: 2, z: 2 },
+    { x: 0, y: 2.7, z: -10 },
+    { x: -7, y: 4, z: -15 },
+    { x: 2, y: 5.5, z: -19 },
+    { x: 16, y: 8.4, z: -22 },
+    { x: -6, y: 14, z: -34 },
+    { x: 0, y: 20, z: -52 },
+  ]) {
+    await teleport(page, p);
+    await page.waitForTimeout(100);
+  }
+  await expect
+    .poll(async () => (await api(page, "snapshot")).phase)
+    .toBe("summit");
+  // Land a single hit, so there is banked progress that a void fall must not preserve.
+  await expect
+    .poll(
+      async () => {
+        const s = await api(page, "snapshot");
+        await teleport(page, conductors[s.guardian.enabledConductor]);
+        return s.guardian.mode;
+      },
+      { timeout: 20_000 },
+    )
+    .toBe("exposed");
+  const exposed = await api(page, "snapshot");
+  await teleport(page, {
+    x: exposed.guardian.position.x,
+    y: exposed.guardian.position.y + 1,
+    z: exposed.guardian.position.z,
+  });
+  await expect
+    .poll(async () => (await api(page, "snapshot")).guardian.hits)
+    .toBe(1);
+  // Drop below the void threshold: the encounter restarts from zero hits.
+  await teleport(page, { x: 0, y: -40, z: -64 });
+  await expect
+    .poll(async () => (await api(page, "snapshot")).guardian.hits)
+    .toBe(0);
+  // Durable progress survives: the run is still in the summit phase, not sent back.
+  expect((await api(page, "snapshot")).phase).toBe("summit");
+});

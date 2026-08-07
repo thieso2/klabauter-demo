@@ -10,7 +10,7 @@ export interface RunState{
 }
 export type RunEvent=
  |{type:'tick';seconds:number}|{type:'beacon';id:string}|{type:'mote';id:string}
- |{type:'shard';id:string}|{type:'recover'}|{type:'complete'}|{type:'stop-timer'};
+ |{type:'shard';id:string}|{type:'recover'}|{type:'defeat'}|{type:'void'}|{type:'complete'}|{type:'stop-timer'};
 
 export const CHECKPOINTS:Record<CheckpointId,Vec3>={
  landing:{x:0,y:.8,z:7},ascent:{x:-7,y:3,z:-15},summit:{x:0,y:19,z:-52}
@@ -21,7 +21,10 @@ export function reduceRun(state:RunState,event:RunEvent):RunState{
  if(event.type==='tick')return state.timerRunning&&event.seconds>0?{...state,elapsed:state.elapsed+event.seconds}:state;
  if(event.type==='stop-timer')return state.timerRunning?{...state,timerRunning:false}:state;
  if(event.type==='complete'&&state.phase==='summit')return {...state,phase:'complete',timerRunning:false,feedback:'Windglass Crest claimed · Galecrest Isle complete!',feedbackSerial:state.feedbackSerial+1};
- if(event.type==='recover')return {...state,feedback:`Recovered at the ${state.checkpoint} checkpoint.`,feedbackSerial:state.feedbackSerial+1};
+ // Defeat and void-fall are separate causes so the reducer can be driven, and read, per the cause
+ // the spec names. Both keep durable progress and return the player to the same checkpoint.
+ if(event.type==='recover'||event.type==='defeat'||event.type==='void')
+  return {...state,feedback:event.type==='defeat'?`Defeated · recovered at the ${state.checkpoint} checkpoint.`:event.type==='void'?`Fell · recovered at the ${state.checkpoint} checkpoint.`:`Recovered at the ${state.checkpoint} checkpoint.`,feedbackSerial:state.feedbackSerial+1};
  if(event.type==='shard')return addUnique(state,'shards',event.id,`Optional shard found · ${state.shards.length+1}`);
  if(event.type==='beacon'){
   if(state.phase!=='beacons'||!BEACON_IDS.includes(event.id as typeof BEACON_IDS[number])||state.beacons.includes(event.id))return state;
