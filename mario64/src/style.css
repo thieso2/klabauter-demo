@@ -8,6 +8,9 @@ h1{font-size:clamp(2.4rem,8vw,4.5rem);line-height:.9;margin:.25em 0;color:#ffd46
 .eyebrow{text-transform:uppercase;letter-spacing:.16em;font-size:.75rem}
 button{border:0;border-radius:999px;padding:.8rem 1.2rem;margin:.25rem;background:#ffd46d;color:#16252c;font-weight:750;cursor:pointer}
 .secondary{background:transparent;color:#f9f2d2;border:1px solid #f9f2d288}
+/* Programmatic focus does not raise :focus-visible, so gamepad menu selection needs its own
+   marker or a controller player cannot see which entry is highlighted. */
+.pad-focus{outline:3px solid #ffd46d;outline-offset:3px}
 #hud{position:absolute;top:max(1rem,env(safe-area-inset-top));left:max(1rem,env(safe-area-inset-left));right:max(1rem,env(safe-area-inset-right));display:flex;gap:.8rem;align-items:center;text-shadow:0 2px 5px #000}
 /* Objective, guidance, health and stats are separate readouts: space them so they do not
    run together into one sentence, and let them wrap instead of colliding on narrow screens. */

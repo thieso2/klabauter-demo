@@ -234,3 +234,69 @@ test("the beacon route is completable with ordinary keyboard movement", async ({
   expect((await api(page, "snapshot")).position.z).toBeLessThan(-12.5);
   expect(errors).toEqual([]);
 });
+// A physical controller cannot be attached on the build host, so the browser's Gamepad API is
+// stubbed with a virtual standard-mapping pad. This exercises our own menu handling end to end in
+// a real page; it does not stand in for the deferred hardware run (see spec section 2a).
+test("a gamepad alone can start, pause and resume the game", async ({ page }) => {
+  await page.addInitScript(() => {
+    const pad = {
+      id: "virtual standard pad",
+      index: 0,
+      connected: true,
+      mapping: "standard",
+      timestamp: 0,
+      axes: [0, 0, 0, 0],
+      buttons: Array.from({ length: 17 }, () => ({
+        pressed: false,
+        touched: false,
+        value: 0,
+      })),
+    };
+    (window as unknown as { __pad: typeof pad }).__pad = pad;
+    navigator.getGamepads = () =>
+      [pad, null, null, null] as unknown as ReturnType<
+        typeof navigator.getGamepads
+      >;
+  });
+  const tap = async (index: number) => {
+    const set = (i: number, v: boolean) =>
+      page.evaluate(
+        ({ i, v }) => {
+          const pad = (window as unknown as { __pad: { buttons: { pressed: boolean }[]; timestamp: number } }).__pad;
+          pad.buttons[i].pressed = v;
+          pad.timestamp = performance.now();
+        },
+        { i: index, v: true as boolean },
+      );
+    await set(index, true);
+    await page.waitForTimeout(120);
+    await page.evaluate((i) => {
+      const pad = (window as unknown as { __pad: { buttons: { pressed: boolean }[] } }).__pad;
+      pad.buttons[i].pressed = false;
+    }, index);
+    await page.waitForTimeout(120);
+  };
+  const focused = () =>
+    page.evaluate(() => document.querySelector(".pad-focus")?.textContent ?? "");
+
+  await page.goto("/?test=1");
+  await expect(page.getByRole("button", { name: "Begin adventure" })).toBeVisible();
+  // Start on the pad begins the run: no click, no key.
+  await tap(9);
+  await expect(page.getByRole("button", { name: "Begin adventure" })).toBeHidden();
+  await expect(page.getByTestId("objective")).toBeVisible();
+
+  // Start again pauses through the in-game binding, and must not immediately resume.
+  await tap(9);
+  await expect(page.getByRole("heading", { name: "Paused" })).toBeVisible();
+  expect(await focused()).toBe("Resume");
+
+  // The d-pad moves the highlight, and A activates whatever is highlighted.
+  await tap(13);
+  expect(await focused()).not.toBe("Resume");
+  await tap(12);
+  expect(await focused()).toBe("Resume");
+  await tap(0);
+  await expect(page.getByRole("heading", { name: "Paused" })).toBeHidden();
+  await expect(page.getByTestId("objective")).toBeVisible();
+});
