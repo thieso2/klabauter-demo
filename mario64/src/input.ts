@@ -1,8 +1,8 @@
 export type Source = 'keyboard' | 'mouse' | 'gamepad' | 'touch';
-export type Action = 'jump' | 'run' | 'recenter' | 'pause';
+export type Action = 'jump' | 'run' | 'crouch' | 'dive' | 'recenter' | 'pause';
 export interface Vec2 { x: number; y: number }
 export interface FrameInput { move: Vec2; camera: Vec2; zoom: number; held: Record<Action, boolean>; pressed: Set<Action>; released: Set<Action> }
-const actions: Action[] = ['jump', 'run', 'recenter', 'pause'];
+const actions: Action[] = ['jump', 'run', 'crouch', 'dive', 'recenter', 'pause'];
 const zeroActions = () => Object.fromEntries(actions.map(a => [a, false])) as Record<Action, boolean>;
 
 export class InputNormalizer {
