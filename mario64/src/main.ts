@@ -13,7 +13,7 @@ const root = document.querySelector<HTMLElement>("#app")!;
 let settings = loadSettings(safeStorage());
 let game: Game | undefined;
 let playing = false;
-root.innerHTML = `<section id="stage" aria-label="Galecrest Isle 3D play area"></section><header id="hud" hidden><div><strong id="objective" data-testid="objective">Wake the wind network · 0/3</strong><span id="guidance">Search the three foothill regions.</span><span id="run-stats" aria-label="Run statistics">◇ 0 optional shards · <time id="run-timer">0:00</time></span></div><p id="objective-feedback" role="status" aria-live="polite"></p><button id="pause" aria-label="Pause game">Ⅱ</button></header><section id="title" class="panel"><p class="eyebrow">An original wind-runner adventure</p><h1>Galecrest Isle</h1><p>Wake three beacons, gather ascent motes, and calm the summit guardian.</p><button id="start">Begin adventure</button><button id="controls-open" class="secondary">Controls & settings</button></section><section id="menu" class="panel" hidden><h2>Paused</h2><button id="resume">Resume</button><button id="controls-menu" class="secondary">Controls & settings</button><button id="restart-open" class="secondary">Restart run</button><button id="title-return" class="secondary">Return to title</button></section><dialog id="restart"><form method="dialog"><h2>Restart this run?</h2><p>Beacon, mote, shard, and guardian progress will be lost.</p><button value="cancel" class="secondary">Keep playing</button><button id="restart-confirm" value="confirm">Restart</button></form></dialog><dialog id="controls"><form method="dialog"><h2>Controls & settings</h2><p><b>Move:</b> keys · left stick · left touch pad<br><b>Camera:</b> mouse drag/wheel · right stick · right-side drag/pinch<br><b>Actions:</b> remappable below · touch buttons<br><b>Menus:</b> gamepad d-pad or left stick to highlight, A to confirm, Start for the first entry</p><fieldset><legend>Audio</legend><label>Master volume <input id="master" type="range" min="0" max="1" step=".05"></label><label>Music volume <input id="music" type="range" min="0" max="1" step=".05"></label><label>Effects volume <input id="effects" type="range" min="0" max="1" step=".05"></label></fieldset><fieldset><legend>Display and camera</legend><label>Quality <select id="quality"><option value="auto">Auto</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label><label>Camera sensitivity <input id="sensitivity" type="range" min=".4" max="2" step=".1"></label><label><input id="invert" type="checkbox"> Invert camera Y</label><label>Touch control size <input id="touch-scale" type="range" min=".75" max="1.35" step=".05"></label><label><input id="reduced" type="checkbox"> Reduced motion</label><label><input id="assist" type="checkbox"> Assist mode (less damage, more recovery time)</label></fieldset><fieldset><legend>Keyboard and gamepad bindings</legend><div id="bindings"></div><p id="binding-status" class="note" role="status"></p><button id="restore" type="button" class="secondary">Restore defaults</button></fieldset><button>Done</button></form></dialog><div id="touch" hidden><div id="stick" aria-label="Touch movement"><i></i></div><button id="touch-jump">Jump</button><button id="touch-pause" aria-label="Pause game">Ⅱ</button></div><aside id="rotate" hidden>Please rotate to landscape to play.</aside>`;
+root.innerHTML = `<section id="stage" aria-label="Galecrest Isle 3D play area"></section><header id="hud" hidden><div><strong id="objective" data-testid="objective">Wake the wind network · 0/3</strong><span id="guidance">Search the three foothill regions.</span><span id="run-stats" aria-label="Run statistics">◇ 0 optional shards · <time id="run-timer">0:00</time></span></div><p id="objective-feedback" role="status" aria-live="polite"></p><button id="pause" aria-label="Pause game">Ⅱ</button></header><section id="title" class="panel"><p class="eyebrow">An original wind-runner adventure</p><h1>Galecrest Isle</h1><p>Wake three beacons, gather ascent motes, and calm the summit guardian.</p><button id="start">Begin adventure</button><button id="controls-open" class="secondary">Controls & settings</button></section><section id="menu" class="panel" hidden><h2>Paused</h2><button id="resume">Resume</button><button id="controls-menu" class="secondary">Controls & settings</button><button id="restart-open" class="secondary">Restart run</button><button id="title-return" class="secondary">Return to title</button></section><dialog id="restart"><form method="dialog"><h2>Restart this run?</h2><p>Beacon, mote, shard, and guardian progress will be lost.</p><button value="cancel" class="secondary">Keep playing</button><button id="restart-confirm" value="confirm">Restart</button></form></dialog><dialog id="controls"><form method="dialog"><h2>Controls & settings</h2><p><b>Move:</b> keys · left stick · left touch pad<br><b>Camera:</b> mouse drag/wheel · right stick · right-side drag/pinch<br><b>Actions:</b> remappable below · touch buttons<br><b>Menus:</b> gamepad d-pad or left stick to highlight, left/right to adjust a slider or dropdown, A to confirm, Start for the first entry</p><fieldset><legend>Audio</legend><label>Master volume <input id="master" type="range" min="0" max="1" step=".05"></label><label>Music volume <input id="music" type="range" min="0" max="1" step=".05"></label><label>Effects volume <input id="effects" type="range" min="0" max="1" step=".05"></label></fieldset><fieldset><legend>Display and camera</legend><label>Quality <select id="quality"><option value="auto">Auto</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label><label>Camera sensitivity <input id="sensitivity" type="range" min=".4" max="2" step=".1"></label><label><input id="invert" type="checkbox"> Invert camera Y</label><label>Touch control size <input id="touch-scale" type="range" min=".75" max="1.35" step=".05"></label><label><input id="reduced" type="checkbox"> Reduced motion</label><label><input id="assist" type="checkbox"> Assist mode (less damage, more recovery time)</label></fieldset><fieldset><legend>Keyboard and gamepad bindings</legend><div id="bindings"></div><p id="binding-status" class="note" role="status"></p><button id="restore" type="button" class="secondary">Restore defaults</button></fieldset><button>Done</button></form></dialog><div id="touch" hidden><div id="stick" aria-label="Touch movement"><i></i></div><button id="touch-jump">Jump</button><button id="touch-pause" aria-label="Pause game">Ⅱ</button></div><aside id="rotate" hidden>Please rotate to landscape to play.</aside>`;
 document
   .querySelector("#touch-jump")
   ?.insertAdjacentHTML(
@@ -242,14 +242,20 @@ const padMenu = {
   held: [] as boolean[],
   axisAt: 0,
   panel(): HTMLElement | undefined {
+    // A modal dialog sits on top of whatever opened it and owns the pad while it is open.
+    const modal = [...document.querySelectorAll("dialog[open]")];
+    if (modal.length) return modal[modal.length - 1] as HTMLElement;
     return [title, menu].find((p) => !p.hidden);
   },
-  choices(): HTMLButtonElement[] {
+  choices(): HTMLElement[] {
     const panel = this.panel();
-    return panel ? [...panel.querySelectorAll("button")] : [];
+    if (!panel) return [];
+    return [
+      ...panel.querySelectorAll<HTMLElement>("button, input, select"),
+    ].filter((el) => !(el as HTMLInputElement).disabled);
   },
   panelShown: undefined as HTMLElement | undefined,
-  mark(buttons: HTMLButtonElement[]) {
+  mark(buttons: HTMLElement[]) {
     // Clear document-wide: a panel that just closed would otherwise keep a stale highlight.
     for (const stale of document.querySelectorAll(".pad-focus"))
       stale.classList.remove("pad-focus");
@@ -257,6 +263,25 @@ const padMenu = {
     buttons[this.focus]?.focus();
   },
 };
+/** Moves a range or select one step, mirroring what a mouse drag or keyboard arrow would do. */
+function adjust(el: HTMLElement | undefined, direction: number) {
+  if (el instanceof HTMLInputElement && el.type === "range") {
+    const step = Number(el.step) || 0.05;
+    const next = Math.min(
+      Number(el.max),
+      Math.max(Number(el.min), Number(el.value) + step * direction),
+    );
+    el.value = String(next);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  } else if (el instanceof HTMLSelectElement) {
+    const next = el.selectedIndex + direction;
+    if (next >= 0 && next < el.options.length) {
+      el.selectedIndex = next;
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+}
 function pollMenuPad(now = 0) {
   requestAnimationFrame(pollMenuPad);
   const pad = (navigator.getGamepads?.() ?? [])[0];
@@ -288,6 +313,15 @@ function pollMenuPad(now = 0) {
     padMenu.focus = Math.min(padMenu.focus, buttons.length - 1);
     padMenu.mark(buttons);
   }
+  // Left/right adjust a highlighted slider or dropdown, so settings are reachable without a mouse.
+  const stickX = pad.axes[0] ?? 0;
+  let nudge = 0;
+  if (edge(15) || (stepped && stickX > 0.5)) nudge = 1;
+  else if (edge(14) || (stepped && stickX < -0.5)) nudge = -1;
+  if (nudge) {
+    if (Math.abs(stickX) > 0.5) padMenu.axisAt = now;
+    adjust(buttons[padMenu.focus], nudge);
+  }
   // A confirms the highlighted entry; Start is a shortcut for the panel's primary action.
   if (edge(0)) buttons[padMenu.focus]?.click();
   else if (edge(settings.gamepad.pause)) buttons[0]?.click();
@@ -303,7 +337,12 @@ stick.addEventListener("pointerdown", (e) => {
   touchId = e.pointerId;
   sx = e.clientX;
   sy = e.clientY;
-  stick.setPointerCapture(e.pointerId);
+  // Capture keeps the drag alive outside the pad, but the pointer may already be gone.
+  try {
+    stick.setPointerCapture(e.pointerId);
+  } catch {
+    /* pointer no longer active; the move/up handlers still work without capture */
+  }
 });
 stick.addEventListener("pointermove", (e) => {
   if (e.pointerId === touchId) {
@@ -316,16 +355,19 @@ stick.addEventListener("pointermove", (e) => {
 });
 const clearTouch = () => {
   touchId = -1;
-  game?.input.clearSource("touch");
+  // Only the movement vector belongs to this touch. Clearing the whole touch source would drop a
+  // jump or camera touch that another finger is still holding.
+  game?.input.setMove("touch", { x: 0, y: 0 });
 };
 stick.addEventListener("pointerup", clearTouch);
 stick.addEventListener("pointercancel", clearTouch);
 $("#touch-jump").addEventListener("pointerdown", () =>
   game?.input.setButton("touch", "jump", true),
 );
-$("#touch-jump").addEventListener("pointerup", () =>
-  game?.input.setButton("touch", "jump", false),
-);
+const releaseJump = () => game?.input.setButton("touch", "jump", false);
+$("#touch-jump").addEventListener("pointerup", releaseJump);
+// A cancelled touch never sends pointerup, so without this the jump stays held down.
+$("#touch-jump").addEventListener("pointercancel", releaseJump);
 const stage = $("#stage");
 let camId = -1,
   cx = 0,
@@ -364,8 +406,11 @@ stage.addEventListener("pointermove", (e) => {
 });
 const endCamera = (e: PointerEvent) => {
   cameraTouches.delete(e.pointerId);
-  if (e.pointerId === camId) camId = -1;
-  game?.input.setButton("touch", "recenter", false);
+  // Only the finger that started the recenter tap may end it; another finger lifting must not.
+  if (e.pointerId === camId) {
+    camId = -1;
+    game?.input.setButton("touch", "recenter", false);
+  }
 };
 stage.addEventListener("pointerup", endCamera);
 stage.addEventListener("pointercancel", endCamera);

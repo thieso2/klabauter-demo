@@ -296,7 +296,75 @@ test("a gamepad alone can start, pause and resume the game", async ({ page }) =>
   expect(await focused()).not.toBe("Resume");
   await tap(12);
   expect(await focused()).toBe("Resume");
+
+  // Settings must be operable on the pad too, not just the panels behind them.
+  const focusedId = () =>
+    page.evaluate(() => document.querySelector(".pad-focus")?.id ?? "");
+  const settingsOpen = () =>
+    page.evaluate(
+      () => document.querySelector<HTMLDialogElement>("#controls")?.open ?? false,
+    );
+  await tap(13);
+  expect(await focused()).toContain("Controls");
+  await tap(0);
+  expect(await settingsOpen()).toBe(true);
+  // The dialog takes the highlight, starting at its first control.
+  expect(await focusedId()).toBe("master");
+  const before = Number(await page.locator("#master").inputValue());
+  await tap(15);
+  expect(Number(await page.locator("#master").inputValue())).toBeGreaterThan(
+    before,
+  );
+  // Wrapping upwards from the first control reaches the last one, which closes the dialog.
+  await tap(12);
+  expect(await focused()).toBe("Done");
+  await tap(0);
+  expect(await settingsOpen()).toBe(false);
+
+  // Back on the pause menu, A resumes the run.
+  await expect(page.getByRole("heading", { name: "Paused" })).toBeVisible();
   await tap(0);
   await expect(page.getByRole("heading", { name: "Paused" })).toBeHidden();
   await expect(page.getByTestId("objective")).toBeVisible();
+});
+test("simultaneous touches stay independent and cancelled touches release", async ({
+  page,
+}) => {
+  await page.goto("/?test=1");
+  await page.getByRole("button", { name: "Begin adventure" }).click();
+  await expect
+    .poll(() => page.evaluate(() => "__galecrestTest" in window))
+    .toBe(true);
+  const fire = (selector: string, type: string, id: number, x = 0, y = 0) =>
+    page.evaluate(
+      ({ selector, type, id, x, y }) => {
+        document.querySelector(selector)?.dispatchEvent(
+          new PointerEvent(type, {
+            pointerId: id,
+            pointerType: "touch",
+            clientX: x,
+            clientY: y,
+            bubbles: true,
+          }),
+        );
+      },
+      { selector, type, id, x, y },
+    );
+  const input = async () => (await api(page, "snapshot")).input;
+
+  // One finger holds jump while another drags the movement pad.
+  await fire("#touch-jump", "pointerdown", 1);
+  await fire("#stick", "pointerdown", 2, 100, 100);
+  await fire("#stick", "pointermove", 2, 140, 100);
+  expect((await input()).held.jump).toBe(true);
+  expect((await input()).move.x).toBeGreaterThan(0);
+
+  // Lifting the movement finger must not drop the jump the other finger is still holding.
+  await fire("#stick", "pointerup", 2, 140, 100);
+  expect((await input()).move).toEqual({ x: 0, y: 0 });
+  expect((await input()).held.jump).toBe(true);
+
+  // A cancelled touch never sends pointerup, so cancellation has to release the action itself.
+  await fire("#touch-jump", "pointercancel", 1);
+  expect((await input()).held.jump).toBe(false);
 });
