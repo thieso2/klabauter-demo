@@ -2,7 +2,27 @@
 
 Validation date: 2026-08-07 UTC. This record separates reproducible container results from device work that requires real browser/hardware access.
 
-Container execution note: on 2026-08-07, unit, build, audit, and browser commands were attempted after replacing the prior installation and using a fresh npm cache. A second clean-cache `npm ci` was performed during the returned-change fix and again extracted a syntactically truncated `esbuild/install.js`; the restored installation still has a truncated Execa entry point, so no automated pass is claimed. `git diff --check` passed after the fixes. This records an execution-environment limitation rather than fabricated passing evidence.
+Execution note: earlier attempts on 2026-08-07 could not run any of these commands. Repeated
+installs extracted truncated package files (`esbuild/install.js`, the Execa entry point), and no
+automated pass was claimed. The cause was the host, not the project: `mmap` with `MAP_SHARED`
+fails with `ENXIO` under `/home` and `/workspace` on this machine, which corrupts large package
+extraction and prevents Chromium from starting. Checking the repository out on `/tmp` (tmpfs,
+unaffected) makes installs and browsers work normally.
+
+`npm run validate` was then executed in full and passed. Environment: Linux x64, Node 26.5.1,
+npm 11.17.0, Playwright 1.54.2 driving its bundled Chromium build 1181 in headless mode.
+
+| Command | Result |
+| --- | --- |
+| `npm test` | 23 tests across 5 files pass (movement, input, settings, encounters, run state) |
+| `npm run build` | `tsc -b` clean; Vite emits 12 modules, 513.7 kB JS (133.7 kB gzip) |
+| `npm run test:browser` | 2 Playwright tests pass: full start-to-finish run and lifecycle pause |
+| `npm run audit` | 135,243 B total gzip transfer; no remote runtime URLs |
+
+The browser run drives the real game: both progression gates hold against ordinary movement,
+all five motes and three beacons register, the guardian is baited into each armed conductor and
+struck three times, and the completion panel reports an elapsed time. The run asserts zero
+console errors and zero non-local network requests.
 
 ## Automated acceptance
 
@@ -10,7 +30,9 @@ Run `npm run validate`. Unit coverage includes mixed input normalization and cle
 
 ## Manual acceptance matrix
 
-The following remains a release-device checklist; it is not falsely marked as executed in this headless container.
+The automated run above covers headless Chromium only. The following remains a release-device
+checklist: Firefox, Safari, Edge, and every physical mobile/gamepad observation below are still
+unexecuted, and no frame-rate figure has been measured on any hardware.
 
 | Coverage | Required observation |
 | --- | --- |

@@ -35,13 +35,17 @@ export function stepPlayer(s:PlayerState,input:StepInput,dt:number,world:PlayerW
  }
  if(n.state==='climb'&&n.stun>0)return n;
  const canControl=n.state!=='hurt'&&n.state!=='recover'&&n.state!=='groundPound';
+ // A ground move chosen this tick (skid, crouch slide, dive). The landing resolution below
+ // re-derives a state every frame the player rests on a surface, so without remembering the
+ // deliberate choice here it would immediately overwrite it with plain 'run'/'land'.
+ let groundMove:MoveState|undefined;
  if(canControl){
-   if(n.grounded&&dot<-.45&&currentSpeed>5){n.state='skid';n.velocity.x=approach(n.velocity.x,0,24*dt);n.velocity.z=approach(n.velocity.z,0,24*dt);}
+   if(n.grounded&&dot<-.45&&currentSpeed>5){groundMove='skid';n.state='skid';n.velocity.x=approach(n.velocity.x,0,24*dt);n.velocity.z=approach(n.velocity.z,0,24*dt);}
    else {const speed=(input.run?8.5:5)*mag,accel=n.grounded?24:8;n.velocity.x=approach(n.velocity.x,dx*speed,accel*dt);n.velocity.z=approach(n.velocity.z,dz*speed,accel*dt);}
  }
  if(n.grounded){n.coyote=coyoteMax;n.fallPeak=n.position.y;
-   if(input.crouch&&currentSpeed>4.2){n.state='slide';n.velocity.x*=1-.55*dt;n.velocity.z*=1-.55*dt;}
-   if(input.divePressed&&currentSpeed>1){n.state='slide';n.velocity.x=dx*11;n.velocity.z=dz*11;}
+   if(input.crouch&&currentSpeed>4.2){groundMove='slide';n.state='slide';n.velocity.x*=1-.55*dt;n.velocity.z*=1-.55*dt;}
+   if(input.divePressed&&currentSpeed>1){groundMove='slide';n.state='slide';n.velocity.x=dx*11;n.velocity.z=dz*11;}
  }else {n.coyote=Math.max(0,n.coyote-dt);n.fallPeak=Math.max(n.fallPeak,n.position.y);}
  if(input.crouchPressed&&!n.grounded&&n.state!=='groundPound'){n.state='groundPound';n.velocity.x*=.25;n.velocity.z*=.25;n.velocity.y=-15;}
  if(input.divePressed&&!n.grounded&&n.state!=='groundPound'){n.state='dive';n.velocity.x=Math.sin(n.facing)*12;n.velocity.z=Math.cos(n.facing)*12;n.velocity.y=1.5;}
@@ -60,18 +64,26 @@ export function stepPlayer(s:PlayerState,input:StepInput,dt:number,world:PlayerW
  }
  if(!n.grounded&&n.state!=='groundPound')n.velocity.y-=22*dt;
  n.position.x+=n.velocity.x*dt;n.position.y+=n.velocity.y*dt;n.position.z+=n.velocity.z*dt;
+ const b=world.bounds;
+ // Falling out of the level is decided before any surface is considered: resolving ground
+ // first would let an out-of-bounds player be snapped back onto it and never recover.
+ if(b&&n.position.y<b.voidY){Object.assign(n,initialPlayer());n.state='recover';n.stun=assist?.15:.35;return n;}
  const surface=world.ground(n.position.x,n.position.z,s.position.y);
- if(surface&&n.velocity.y<=0&&n.position.y<=surface.y+.12){
+ // Settle only onto a surface the player was standing on or descending toward. Landing purely
+ // on "below the surface" would teleport a player who is under the floor back up onto it.
+ if(surface&&n.velocity.y<=0&&n.position.y<=surface.y+.12&&s.position.y>=surface.y-.75){
    const impact=n.velocity.y,drop=n.fallPeak-surface.y;n.position.y=surface.y;n.velocity.y=0;n.grounded=true;n.platform=surface.platform;
+   // Touching down opens the window to continue a jump chain; a completed triple starts over.
+   if(!s.grounded){n.chainTimer=.42;if(n.jumpChain>=3)n.jumpChain=0;}
    if(surface.velocity){n.position.x+=surface.velocity.x*dt;n.position.y+=surface.velocity.y*dt;n.position.z+=surface.velocity.z*dt;}
    const steep=surface.normal.y<.68;
    if(steep){n.state='slide';n.velocity.x+=surface.normal.x*12*dt;n.velocity.z+=surface.normal.z*12*dt;n.grounded=false;}
    else if(n.state==='dive'||n.state==='groundPound')n.state=n.state==='dive'?'slide':'land';
    else if(drop>8||impact<-13){n.state='hurt';n.stun=assist?.25:.55;n.velocity.x*=.3;n.velocity.z*=.3;}
-   else n.state=mag?'run':'land';
+   else n.state=groundMove??(mag?'run':'land');
  }else if(!n.grounded&&n.state!=='dive'&&n.state!=='groundPound')n.state=n.velocity.y>0?'jump':'fall';
  if(n.grounded&&surface?.velocity){n.position.x+=surface.velocity.x*dt;n.position.y+=surface.velocity.y*dt;n.position.z+=surface.velocity.z*dt;}
- const b=world.bounds;if(b){n.position.x=Math.max(b.minX,Math.min(b.maxX,n.position.x));n.position.z=Math.max(b.minZ,Math.min(b.maxZ,n.position.z));if(n.position.y<b.voidY){Object.assign(n,initialPlayer());n.state='recover';n.stun=assist?.15:.35;}}
+ if(b){n.position.x=Math.max(b.minX,Math.min(b.maxX,n.position.x));n.position.z=Math.max(b.minZ,Math.min(b.maxZ,n.position.z));}
  if(Math.hypot(n.velocity.x,n.velocity.z)>.15)n.facing=Math.atan2(n.velocity.x,n.velocity.z);return n;
 }
 const approach=(v:number,t:number,d:number)=>v<t?Math.min(t,v+d):Math.max(t,v-d);

@@ -9,6 +9,9 @@ h1{font-size:clamp(2.4rem,8vw,4.5rem);line-height:.9;margin:.25em 0;color:#ffd46
 button{border:0;border-radius:999px;padding:.8rem 1.2rem;margin:.25rem;background:#ffd46d;color:#16252c;font-weight:750;cursor:pointer}
 .secondary{background:transparent;color:#f9f2d2;border:1px solid #f9f2d288}
 #hud{position:absolute;top:max(1rem,env(safe-area-inset-top));left:max(1rem,env(safe-area-inset-left));right:max(1rem,env(safe-area-inset-right));display:flex;gap:.8rem;align-items:center;text-shadow:0 2px 5px #000}
+/* Objective, guidance, health and stats are separate readouts: space them so they do not
+   run together into one sentence, and let them wrap instead of colliding on narrow screens. */
+#hud>div{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .8rem;min-width:0}
 #hud span{opacity:.85}
 #hud button{margin-left:auto}
 #hud[hidden]{display:none}

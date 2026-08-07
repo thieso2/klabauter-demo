@@ -630,13 +630,24 @@ export class Game {
         1 / 60,
         this.world,
       );
-      if (
-        this.state.grounded &&
-        this.wall(this.state.position, this.state.velocity)
-      ) {
+      // Solids stop the player in the air as well as on the ground; gating only the grounded
+      // case let an ordinary jump or fall carry the player straight through a closed gate.
+      // Ledge hangs and climbs are excluded because those states place the player deliberately.
+      const blocking =
+        this.state.state !== "hang" && this.state.state !== "climb"
+          ? this.wall(this.state.position, this.state.velocity)
+          : undefined;
+      if (blocking) {
         this.state.position.x = previousPosition.x;
         this.state.position.z = previousPosition.z;
-        this.state.velocity.x = this.state.velocity.z = 0;
+        // Cancel only the motion driving into the surface, so wall kicks still push away.
+        const into =
+          this.state.velocity.x * blocking.normal.x +
+          this.state.velocity.z * blocking.normal.z;
+        if (into < 0) {
+          this.state.velocity.x -= blocking.normal.x * into;
+          this.state.velocity.z -= blocking.normal.z * into;
+        }
       }
       if (this.state.state === "hurt" && previousMove !== "hurt")
         this.applyDamage(1, {

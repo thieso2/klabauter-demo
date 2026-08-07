@@ -29,14 +29,18 @@ export function damage(s:EncounterState,amount:number):EncounterState{
 
 export function stepEncounter(source:EncounterState,input:EncounterInput,dt:number):EncounterStep{
  const s:EncounterState=structuredClone(source),result:EncounterStep={state:s};s.invulnerable=Math.max(0,s.invulnerable-dt);const attack=attackKind(input.playerMove,input.playerVelocity);
+ // Pellets fired this tick are held back from the integration pass below. Letting them move a
+ // full frame from their muzzle would skip them past anything standing close to the shooter.
+ const spawned:Projectile[]=[];
  for(const e of s.enemies){if(e.mode==='defeated')continue;e.timer-=dt;const dx=input.player.x-e.position.x,dz=input.player.z-e.position.z,d=Math.hypot(dx,dz),nearY=Math.abs(input.player.y-e.position.y)<1.8;
   if(d<1.25&&nearY&&attack!=='none'&&input.player.y>=e.position.y+.35){e.mode='defeated';e.timer=0;result.enemyDefeated=e.id;s.feedback=`${e.kind} dispersed`;s.feedbackSerial++;continue}
   if(e.kind==='charger')stepCharger(e,dx,dz,d,dt);
-  else if(e.kind==='spitter'){e.hop=Math.max(0,Math.sin((e.timer+2)*5))*.28;if(e.mode==='telegraph'&&e.timer<=0){const n=Math.max(.001,d);s.projectiles.push({id:s.nextProjectile++,position:{x:e.position.x,y:e.position.y+.65,z:e.position.z},velocity:{x:dx/n*4.2,y:1.2,z:dz/n*4.2},life:4});e.mode='cooldown';e.timer=2.2}else if((e.mode==='idle'||e.mode==='cooldown')&&e.timer<=0&&d<14){e.mode='telegraph';e.timer=.55}}
+  else if(e.kind==='spitter'){e.hop=Math.max(0,Math.sin((e.timer+2)*5))*.28;if(e.mode==='telegraph'&&e.timer<=0){const n=Math.max(.001,d);spawned.push({id:s.nextProjectile++,position:{x:e.position.x,y:e.position.y+.65,z:e.position.z},velocity:{x:dx/n*4.2,y:1.2,z:dz/n*4.2},life:4});e.mode='cooldown';e.timer=2.2}else if((e.mode==='idle'||e.mode==='cooldown')&&e.timer<=0&&d<14){e.mode='telegraph';e.timer=.55}}
   else {if(d<3.2){e.mode=e.timer>.35?'telegraph':'attack';if(e.timer<=0)e.timer=1.15}else e.mode='idle'}
-  if(d<1.05&&nearY&&(e.mode==='attack'||e.kind==='charger'&&e.mode==='attack'))result.damage??={amount:1,source:e.position};
+  if(d<1.05&&nearY&&attacking(e))result.damage??={amount:1,source:e.position};
  }
  s.projectiles=s.projectiles.filter(p=>{p.life-=dt;p.position.x+=p.velocity.x*dt;p.position.y+=p.velocity.y*dt;p.position.z+=p.velocity.z*dt;p.velocity.y-=2.5*dt;if(p.life>0&&distance(p.position,input.player)<.75){result.damage??={amount:1,source:p.position};return false}return p.life>0});
+ s.projectiles.push(...spawned);
  if(input.phase==='summit')stepGuardian(s,input,dt,result);else s.guardian.mode='dormant';
  return result;
 }
@@ -47,4 +51,7 @@ function stepGuardian(s:EncounterState,input:EncounterInput,dt:number,result:Enc
  else if(g.mode==='exposed'){if(!g.hitThisExposure&&attackKind(input.playerMove,input.playerVelocity)!=='none'&&distance(input.player,g.position)<1.8){g.hitThisExposure=true;g.hits++;result.guardianHit=g.hits;s.feedback=`Core struck · ${g.hits}/3`;s.feedbackSerial++;if(g.hits===3){g.mode='defeated';result.guardianDefeated=true;s.feedback='Guardian calmed · claim the Windglass Crest';s.feedbackSerial++}else{g.mode='recover';g.timer=.9}}else if(g.timer<=0){g.mode='recover';g.timer=.65}}
  else if(g.mode==='recover'&&g.timer<=0){g.position={x:0,y:22,z:-65};g.enabledConductor=(g.enabledConductor+1)%3;g.mode='telegraph';g.timer=Math.max(.65,1.2-g.hits*.16)}}
 export const conductors:readonly Vec3[]=[{x:-8,y:21,z:-68},{x:8,y:21,z:-68},{x:0,y:21,z:-58}];
+// Read through a helper so the check sees the full EnemyMode union: the per-kind updates above
+// reach 'attack' through mutation that narrowing cannot follow.
+const attacking=(e:EnemyState)=>e.mode==='attack';
 const distance=(a:Vec3,b:Vec3)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z),distanceXZ=(a:Vec3,b:Vec3)=>Math.hypot(a.x-b.x,a.z-b.z);

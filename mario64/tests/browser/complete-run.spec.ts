@@ -86,15 +86,18 @@ test("real gates and encounter complete in the running browser game", async ({
     .poll(async () => (await api(page, "snapshot")).phase)
     .toBe("summit");
   for (let hit = 1; hit <= 3; hit++) {
+    // Bait the charge by standing on the armed conductor. Which one is armed advances when the
+    // guardian finishes recovering, so re-place the player on each poll instead of reading it
+    // once — a value sampled during 'recover' is the previous target, and the charge misses.
     await expect
-      .poll(async () => (await api(page, "snapshot")).guardian.mode)
-      .toMatch(/telegraph|recover/);
-    const before = await api(page, "snapshot");
-    await teleport(page, conductors[before.guardian.enabledConductor]);
-    await expect
-      .poll(async () => (await api(page, "snapshot")).guardian.mode, {
-        timeout: 8_000,
-      })
+      .poll(
+        async () => {
+          const s = await api(page, "snapshot");
+          await teleport(page, conductors[s.guardian.enabledConductor]);
+          return s.guardian.mode;
+        },
+        { timeout: 20_000 },
+      )
       .toBe("exposed");
     const exposed = await api(page, "snapshot");
     await teleport(page, {
