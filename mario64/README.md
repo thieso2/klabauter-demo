@@ -1,6 +1,6 @@
 # Galecrest Isle — movement playground
 
-An original browser 3D platforming playground. No remote gameplay assets are loaded.
+An original browser 3D platforming adventure. Wake three beacons, gather five ascent motes, then bait the summit guardian into enabled conductors and movement-attack its exposed core three times to claim the Windglass Crest. No remote gameplay assets are loaded.
 
 ```sh
 npm install

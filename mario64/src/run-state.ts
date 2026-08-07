@@ -2,7 +2,7 @@ import type {Vec3} from './player';
 
 export const BEACON_IDS=['orchard','amber','hollow'] as const;
 export const MOTE_IDS=['threshold','switchback','ferry','wallkick','crownstep'] as const;
-export type RunPhase='beacons'|'ascent'|'summit';
+export type RunPhase='beacons'|'ascent'|'summit'|'complete';
 export type CheckpointId='landing'|'ascent'|'summit';
 export interface RunState{
  phase:RunPhase;beacons:readonly string[];motes:readonly string[];shards:readonly string[];
@@ -10,7 +10,7 @@ export interface RunState{
 }
 export type RunEvent=
  |{type:'tick';seconds:number}|{type:'beacon';id:string}|{type:'mote';id:string}
- |{type:'shard';id:string}|{type:'recover'}|{type:'stop-timer'};
+ |{type:'shard';id:string}|{type:'recover'}|{type:'complete'}|{type:'stop-timer'};
 
 export const CHECKPOINTS:Record<CheckpointId,Vec3>={
  landing:{x:0,y:.8,z:7},ascent:{x:-7,y:3,z:-15},summit:{x:0,y:19,z:-52}
@@ -20,6 +20,7 @@ export const initialRun=():RunState=>({phase:'beacons',beacons:[],motes:[],shard
 export function reduceRun(state:RunState,event:RunEvent):RunState{
  if(event.type==='tick')return state.timerRunning&&event.seconds>0?{...state,elapsed:state.elapsed+event.seconds}:state;
  if(event.type==='stop-timer')return state.timerRunning?{...state,timerRunning:false}:state;
+ if(event.type==='complete'&&state.phase==='summit')return {...state,phase:'complete',timerRunning:false,feedback:'Windglass Crest claimed · Galecrest Isle complete!',feedbackSerial:state.feedbackSerial+1};
  if(event.type==='recover')return {...state,feedback:`Recovered at the ${state.checkpoint} checkpoint.`,feedbackSerial:state.feedbackSerial+1};
  if(event.type==='shard')return addUnique(state,'shards',event.id,`Optional shard found · ${state.shards.length+1}`);
  if(event.type==='beacon'){
@@ -43,7 +44,7 @@ function addUnique(state:RunState,key:'shards',id:string,feedback:string):RunSta
 
 export const objectiveText=(s:RunState)=>s.phase==='beacons'
  ?`Wake the wind network · ${s.beacons.length}/3`
- :s.phase==='ascent'?`Power the ascent · ${s.motes.length}/5`:'Reach the summit guardian';
+ :s.phase==='ascent'?`Power the ascent · ${s.motes.length}/5`:s.phase==='summit'?'Calm the summit guardian':'Galecrest Isle complete';
 export const guidanceText=(s:RunState)=>s.phase==='beacons'
  ?'Search the Orchard, Amber Run, and Crystal Hollow for ◆ beacons.'
- :s.phase==='ascent'?'Follow the rising paths and gather every ⬟ mote.':'The summit path is open.';
+ :s.phase==='ascent'?'Follow the rising paths and gather every ⬟ mote.':s.phase==='summit'?'Bait its charge into the glowing conductor, then movement-attack the core.':'The Windglass Crest is yours.';
