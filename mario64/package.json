@@ -1,1 +1,28 @@
-{"name":"galecrest-isle-playground","private":true,"version":"0.1.0","type":"module","engines":{"node":">=18"},"scripts":{"dev":"vite","test":"vitest run","build":"tsc -b && vite build","preview":"vite preview","audit":"node scripts/release-audit.mjs"},"dependencies":{"three":"0.165.0"},"devDependencies":{"@types/three":"0.165.0","typescript":"5.4.5","vite":"5.4.14","vitest":"1.6.1"}}
+{
+  "name": "galecrest-isle-playground",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "vite",
+    "test": "vitest run",
+    "test:browser": "playwright test",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "audit": "node scripts/release-audit.mjs",
+    "validate": "npm test && npm run build && npm run test:browser && npm run audit"
+  },
+  "dependencies": {
+    "three": "0.165.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2",
+    "@types/three": "0.165.0",
+    "typescript": "5.4.5",
+    "vite": "5.4.14",
+    "vitest": "1.6.1"
+  }
+}

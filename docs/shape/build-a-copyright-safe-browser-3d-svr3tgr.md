@@ -138,4 +138,3 @@ Delivery is complete when all of the following are true:
 - Initial compressed network transfer for the production experience is under 15 MB, measured with an empty cache and excluding browser tooling.
 - All mandatory mechanics, enemies, damage/recovery, checkpoints, objectives, and completion behavior described in this map work; no placeholder blocks or debug controls are needed to finish.
 - `ATTRIBUTION.md` accounts for every shipped asset and dependency as applicable, and a repository review finds no copied protected names, likenesses, artwork, audio, dialogue, or level geometry.
-
