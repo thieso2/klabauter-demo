@@ -9,6 +9,7 @@ type Snapshot = {
     enabledConductor: number;
   };
   paused: boolean;
+  input: { move: { x: number; y: number }; held: Record<string, boolean> };
 };
 const conductors = [
   { x: -8, y: 21, z: -68 },
@@ -119,5 +120,7 @@ test("blur pauses and clears held browser input", async ({ page }) => {
   await page.evaluate(() => window.dispatchEvent(new Event("blur")));
   await expect(page.getByRole("heading", { name: "Paused" })).toBeVisible();
   expect((await api(page, "snapshot")).paused).toBe(true);
+  expect((await api(page, "snapshot")).input.move).toEqual({ x: 0, y: 0 });
+  expect(Object.values((await api(page, "snapshot")).input.held)).not.toContain(true);
   await page.keyboard.up("KeyW");
 });

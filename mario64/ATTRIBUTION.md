@@ -17,6 +17,7 @@ No generative service or third-party asset library was used. Production loads no
 - Vite 5.4.14 — MIT License; build and local static preview.
 - TypeScript 5.4.5 — Apache-2.0 License; compilation only.
 - Vitest 1.6.1 — MIT License; tests only.
+- Playwright Test 1.54.2 — Apache-2.0 License; browser automation only.
 - `@types/three` 0.165.0 — MIT License; type declarations only.
 
 Transitive development packages remain in `package-lock.json` and are not separately redistributed as runtime assets. No licensed external artwork, audio, fonts, meshes, dialogue, or other media ship with the application.

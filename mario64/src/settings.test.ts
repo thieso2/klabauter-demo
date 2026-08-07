@@ -32,5 +32,7 @@ describe("settings", () => {
     expect(new Set(Object.values(defaults.gamepad)).size).toBe(Object.keys(defaults.gamepad).length);
     expect(remap(defaults.keyboard, "jump", "Escape")).toBeNull();
     expect(remap(defaults.keyboard, "jump", "KeyJ")?.jump).toBe("KeyJ");
+    expect(defaults.keyboard.crouch).toBe("ShiftLeft");
+    expect(defaults.gamepad.crouch).toBe(2);
   });
 });

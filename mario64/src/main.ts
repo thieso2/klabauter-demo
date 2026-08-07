@@ -47,7 +47,6 @@ const title = $("#title"),
 const sound = new Soundscape();
 const actions: Action[] = [
   "jump",
-  "run",
   "crouch",
   "dive",
   "recenter",
@@ -124,7 +123,6 @@ function pause() {
 function renderBindings() {
   const labels: Record<Action, string> = {
     jump: "Jump",
-    run: "Run",
     crouch: "Crouch / pound",
     dive: "Dive",
     recenter: "Recenter camera",
@@ -253,7 +251,6 @@ stick.addEventListener("pointermove", (e) => {
       y: Math.max(-1, Math.min(1, (e.clientY - sy) / 45)),
     };
     game?.input.setMove("touch", move);
-    game?.input.setButton("touch", "run", Math.hypot(move.x, move.y) > 0.78);
   }
 });
 const clearTouch = () => {

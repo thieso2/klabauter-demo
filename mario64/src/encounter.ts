@@ -32,7 +32,7 @@ export function stepEncounter(source:EncounterState,input:EncounterInput,dt:numb
  for(const e of s.enemies){if(e.mode==='defeated')continue;e.timer-=dt;const dx=input.player.x-e.position.x,dz=input.player.z-e.position.z,d=Math.hypot(dx,dz),nearY=Math.abs(input.player.y-e.position.y)<1.8;
   if(d<1.25&&nearY&&attack!=='none'&&input.player.y>=e.position.y+.35){e.mode='defeated';e.timer=0;result.enemyDefeated=e.id;s.feedback=`${e.kind} dispersed`;s.feedbackSerial++;continue}
   if(e.kind==='charger')stepCharger(e,dx,dz,d,dt);
-  else if(e.kind==='spitter'){e.hop=Math.max(0,Math.sin((e.timer+2)*5))*.28;if(e.timer<=0&&d<14){e.mode='telegraph';e.timer=.55}else if(e.mode==='telegraph'&&e.timer<=.08){const n=Math.max(.001,d);s.projectiles.push({id:s.nextProjectile++,position:{x:e.position.x,y:e.position.y+.65,z:e.position.z},velocity:{x:dx/n*4.2,y:1.2,z:dz/n*4.2},life:4});e.mode='cooldown';e.timer=2.2}}
+  else if(e.kind==='spitter'){e.hop=Math.max(0,Math.sin((e.timer+2)*5))*.28;if(e.mode==='telegraph'&&e.timer<=0){const n=Math.max(.001,d);s.projectiles.push({id:s.nextProjectile++,position:{x:e.position.x,y:e.position.y+.65,z:e.position.z},velocity:{x:dx/n*4.2,y:1.2,z:dz/n*4.2},life:4});e.mode='cooldown';e.timer=2.2}else if((e.mode==='idle'||e.mode==='cooldown')&&e.timer<=0&&d<14){e.mode='telegraph';e.timer=.55}}
   else {if(d<3.2){e.mode=e.timer>.35?'telegraph':'attack';if(e.timer<=0)e.timer=1.15}else e.mode='idle'}
   if(d<1.05&&nearY&&(e.mode==='attack'||e.kind==='charger'&&e.mode==='attack'))result.damage??={amount:1,source:e.position};
  }

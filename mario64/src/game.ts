@@ -20,6 +20,7 @@ import {
 import {
   conductors,
   damage,
+  heal,
   initialEncounter,
   resetTransient,
   stepEncounter,
@@ -125,7 +126,7 @@ const slopes: Slope[] = [
 ];
 interface ObjectiveEntity {
   id: string;
-  kind: "beacon" | "mote" | "shard";
+  kind: "beacon" | "mote" | "shard" | "health";
   position: Vec3;
   mesh: THREE.Object3D;
 }
@@ -162,6 +163,7 @@ export class Game {
   private run = initialRun();
   private encounter: EncounterState = initialEncounter();
   private entities: ObjectiveEntity[] = [];
+  private healthCollected = new Set<string>();
   private ascentGate?: THREE.Mesh;
   private summitGate?: THREE.Mesh;
   private enemyMeshes = new Map<string, THREE.Object3D>();
@@ -397,6 +399,24 @@ export class Game {
       this.scene.add(mesh);
       this.entities.push({ id, kind: "shard", position: { x, y, z }, mesh });
     }
+    for (const [id, x, y, z] of [
+      ["foothill-tonic", -11, 1.2, 5],
+      ["ascent-tonic", 8, 4.7, -20],
+    ] as const) {
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.38, 8, 6),
+        new THREE.MeshStandardMaterial({
+          color: "#7ff0a2",
+          emissive: "#287d56",
+          emissiveIntensity: 1,
+        }),
+      );
+      mesh.position.set(x, y, z);
+      mesh.userData.landmarkId = `health-${id}`;
+      mesh.userData.cue = "green round health tonic";
+      this.scene.add(mesh);
+      this.entities.push({ id, kind: "health", position: { x, y, z }, mesh });
+    }
     const gateMat = new THREE.MeshStandardMaterial({
       color: "#263f55",
       emissive: "#407da0",
@@ -600,7 +620,7 @@ export class Game {
         {
           move: frame.move,
           jumpPressed: frame.pressed.has("jump"),
-          run: frame.held.run,
+          run: Math.hypot(frame.move.x, frame.move.y) > 0.72,
           crouch: frame.held.crouch,
           crouchPressed: frame.pressed.has("crouch"),
           divePressed: frame.pressed.has("dive"),
@@ -674,6 +694,15 @@ export class Game {
     for (const e of this.entities) {
       if (!e.mesh.visible || distance(this.state.position, e.position) > 1.35)
         continue;
+      if (e.kind === "health") {
+        const prior = this.encounter;
+        this.encounter = heal(this.encounter, 2);
+        if (this.encounter !== prior) {
+          this.healthCollected.add(e.id);
+          e.mesh.visible = false;
+        }
+        continue;
+      }
       const prior = this.run;
       this.run = reduceRun(this.run, { type: e.kind, id: e.id });
       if (this.run !== prior) {
@@ -709,10 +738,12 @@ export class Game {
   private syncEntities() {
     for (const e of this.entities) {
       e.mesh.visible =
-        e.kind === "beacon" ||
-        (e.kind === "mote"
-          ? !this.run.motes.includes(e.id)
-          : !this.run.shards.includes(e.id));
+        e.kind === "health"
+          ? !this.healthCollected.has(e.id)
+          : e.kind === "beacon" ||
+            (e.kind === "mote"
+              ? !this.run.motes.includes(e.id)
+              : !this.run.shards.includes(e.id));
       if (e.kind === "beacon" && this.run.beacons.includes(e.id))
         this.lightBeacon(e);
     }
@@ -831,7 +862,6 @@ export class Game {
       );
       for (const a of [
         "jump",
-        "run",
         "crouch",
         "dive",
         "recenter",
@@ -907,6 +937,7 @@ export class Game {
       },
       cameraDistance: this.cameraDistance,
       paused: !this.running,
+      input: this.input.snapshot(),
     };
   }
   private makeHero() {
@@ -945,7 +976,6 @@ export class Game {
         });
         for (const a of [
           "jump",
-          "run",
           "crouch",
           "dive",
           "recenter",

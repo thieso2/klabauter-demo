@@ -2,11 +2,11 @@
 
 Validation date: 2026-08-07 UTC. This record separates reproducible container results from device work that requires real browser/hardware access.
 
-Container execution note: on 2026-08-07, unit, build, audit, and browser commands were attempted after replacing the prior installation and using a fresh npm cache. This environment repeatedly extracted syntactically truncated package files (including Execa, TypeScript, Playwright, Esbuild, and declarations), so no automated pass is claimed. `git diff --check` passed. This records an execution-environment limitation rather than fabricated passing evidence.
+Container execution note: on 2026-08-07, unit, build, audit, and browser commands were attempted after replacing the prior installation and using a fresh npm cache. A second clean-cache `npm ci` was performed during the returned-change fix and again extracted a syntactically truncated `esbuild/install.js`; the restored installation still has a truncated Execa entry point, so no automated pass is claimed. `git diff --check` passed after the fixes. This records an execution-environment limitation rather than fabricated passing evidence.
 
 ## Automated acceptance
 
-Run `npm run validate`. Unit coverage includes mixed input normalization and clearing, settings persistence/conflicts/fallback, deterministic movement, durable progression/recovery, and guardian causality. Playwright launches the application and covers both physical gates, proximity-driven objectives, natural guardian telegraph/charge/conductor exposure and movement-attack hits, crest completion, lifecycle pause, console errors, and remote network requests. The production audit inventories every emitted file, computes gzip size, rejects runtime HTTP(S) URLs in source, and enforces the 15 MiB initial-transfer ceiling.
+Run `npm run validate`. Unit coverage includes mixed input normalization and clearing, settings persistence/conflicts/fallback, deterministic movement, capped healing, spitter wind-up/projectile travel/damage, durable progression/recovery, and guardian causality. Playwright launches the application and covers both physical gates, proximity-driven objectives, natural guardian telegraph/charge/conductor exposure and movement-attack hits, crest completion, lifecycle pause with an explicit zero-movement/no-held-actions assertion, console errors, and remote network requests. The production audit inventories every emitted file, computes gzip size, rejects runtime HTTP(S) URLs in source, and enforces the 15 MiB initial-transfer ceiling.
 
 ## Manual acceptance matrix
 

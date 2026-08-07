@@ -27,13 +27,12 @@ export const defaults: Settings = {
   assist: false,
   keyboard: {
     jump: "Space",
-    run: "ShiftLeft",
-    crouch: "ControlLeft",
+    crouch: "ShiftLeft",
     dive: "KeyE",
     recenter: "KeyR",
     pause: "Escape",
   },
-  gamepad: { jump: 0, run: 2, crouch: 3, dive: 1, recenter: 11, pause: 9 },
+  gamepad: { jump: 0, crouch: 2, dive: 1, recenter: 11, pause: 9 },
 };
 export interface StorageLike {
   getItem(k: string): string | null;

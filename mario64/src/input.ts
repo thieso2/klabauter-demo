@@ -1,8 +1,8 @@
 export type Source = 'keyboard' | 'mouse' | 'gamepad' | 'touch';
-export type Action = 'jump' | 'run' | 'crouch' | 'dive' | 'recenter' | 'pause';
+export type Action = 'jump' | 'crouch' | 'dive' | 'recenter' | 'pause';
 export interface Vec2 { x: number; y: number }
 export interface FrameInput { move: Vec2; camera: Vec2; zoom: number; held: Record<Action, boolean>; pressed: Set<Action>; released: Set<Action> }
-const actions: Action[] = ['jump', 'run', 'crouch', 'dive', 'recenter', 'pause'];
+const actions: Action[] = ['jump', 'crouch', 'dive', 'recenter', 'pause'];
 const zeroActions = () => Object.fromEntries(actions.map(a => [a, false])) as Record<Action, boolean>;
 
 export class InputNormalizer {
@@ -20,6 +20,7 @@ export class InputNormalizer {
   }
   clearSource(source: Source) { this.moves.delete(source); this.cameras.delete(source); this.buttons.delete(source); }
   clearAll() { this.moves.clear(); this.cameras.clear(); this.buttons.clear(); this.previous = zeroActions(); this.wheel = 0; }
+  snapshot() { const held=zeroActions();for(const state of this.buttons.values())for(const action of actions)held[action]||=state[action];return {move:strongest([...this.moves.values()]),held}; }
   sample(): FrameInput {
     const move = strongest([...this.moves.values()]);
     const latest = [...this.cameras.values()].sort((a,b) => b.at-a.at)[0];
