@@ -18,6 +18,7 @@ import {
   type RunState,
 } from "./run-state";
 import {
+  assistedDamage,
   conductors,
   damage,
   heal,
@@ -185,15 +186,8 @@ export class Game {
       antialias: tier !== "low",
       powerPreference: "high-performance",
     });
-    this.renderer.setPixelRatio(
-      Math.min(
-        devicePixelRatio,
-        tier === "high" ? 2 : tier === "medium" ? 1.5 : 1,
-      ),
-    );
-    this.renderer.shadowMap.enabled = tier !== "low";
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    host.dataset.quality = tier;
+    this.applyQuality();
     host.prepend(this.renderer.domElement);
     this.scene.background = new THREE.Color("#86c9d5");
     this.scene.fog = new THREE.Fog("#86c9d5", 48, 115);
@@ -237,6 +231,22 @@ export class Game {
   updateSettings(s: Settings) {
     this.settings = s;
     if (this.world.bounds) this.world.bounds.voidY = s.assist ? -5 : -10;
+    // Quality is chosen while playing, from the pause menu: it has to take effect now rather
+    // than at the next reload, so re-resolve the tier and re-apply it to the live renderer.
+    this.applyQuality();
+  }
+  /** Pixel ratio, shadows and the reported tier for the currently resolved quality. */
+  private applyQuality() {
+    const tier = this.resolveQuality();
+    this.renderer.setPixelRatio(
+      Math.min(
+        devicePixelRatio,
+        tier === "high" ? 2 : tier === "medium" ? 1.5 : 1,
+      ),
+    );
+    this.renderer.shadowMap.enabled = tier !== "low";
+    this.renderer.shadowMap.needsUpdate = true;
+    this.host.dataset.quality = tier;
   }
   private resolveQuality() {
     if (this.settings.quality !== "auto") return this.settings.quality;
@@ -669,7 +679,7 @@ export class Game {
       this.encounter = encounter.state;
       if (encounter.damage)
         this.applyDamage(
-          this.settings.assist ? 1 : encounter.damage.amount,
+          assistedDamage(encounter.damage.amount, this.settings.assist),
           encounter.damage.source,
         );
       if (encounter.enemyDefeated)

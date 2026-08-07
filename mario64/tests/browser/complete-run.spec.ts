@@ -486,3 +486,26 @@ test("mouse camera drag does not dive, and middle click recenters", async ({
     )
     .toBeLessThan(0.05);
 });
+test("changing quality in the pause menu takes effect immediately", async ({
+  page,
+}) => {
+  await page.goto("/?test=1");
+  await page.getByRole("button", { name: "Begin adventure" }).click();
+  await expect
+    .poll(() => page.evaluate(() => "__galecrestTest" in window))
+    .toBe(true);
+  const tier = () =>
+    page.evaluate(
+      () => document.querySelector<HTMLElement>("#stage")?.dataset.quality ?? "",
+    );
+  const before = await tier();
+  expect(before).not.toBe("");
+  // Pause, open settings and pick a tier explicitly: it must apply to the live renderer, not
+  // wait for a reload.
+  await page.getByRole("button", { name: "Pause game" }).first().click();
+  await page.getByRole("button", { name: "Controls & settings" }).click();
+  await page.locator("#quality").selectOption("low");
+  await expect.poll(tier).toBe("low");
+  await page.locator("#quality").selectOption("high");
+  await expect.poll(tier).toBe("high");
+});

@@ -65,8 +65,16 @@ function begin() {
         objective.dataset.phase = view.phase;
         $("#guidance").textContent = view.guidance;
         $("#objective-feedback").textContent = view.feedback;
-        $("#health").textContent =
-          "◆".repeat(view.health) + "◇".repeat(view.maxHealth - view.health);
+        // Assist halves damage, so health lands on halves: show one as a partly-spent pip
+        // rather than truncating it away and making assist look like it did nothing.
+        {
+          const whole = Math.floor(view.health),
+            half = view.health - whole >= 0.5 ? 1 : 0;
+          $("#health").textContent =
+            "◆".repeat(whole) +
+            "◈".repeat(half) +
+            "◇".repeat(Math.max(0, view.maxHealth - whole - half));
+        }
         $("#health").setAttribute(
           "aria-label",
           `${view.health} of ${view.maxHealth} health`,
@@ -214,6 +222,19 @@ for (const id of ["#master", "#music", "#effects"])
     save();
     sound.start(settings);
   });
+// Every other setting applies as it is changed too. Waiting for the dialog to close meant
+// picking a quality tier, or assist, appeared to do nothing while the menu was still open.
+for (const id of [
+  "#quality",
+  "#invert",
+  "#reduced",
+  "#assist",
+  "#sensitivity",
+  "#touch-sensitivity",
+  "#touch-scale",
+])
+  for (const event of ["input", "change"])
+    $(id).addEventListener(event, save);
 $("#restore").onclick = () => {
   settings = structuredClone(defaults);
   dialog.close();

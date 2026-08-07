@@ -19,6 +19,34 @@ npm 11.17.0, Playwright 1.54.2 driving its bundled Chromium build 1181 in headle
 | `npm run test:browser` | 3 Playwright tests pass: normal-route play, full completion, lifecycle pause |
 | `npm run audit` | 135 kB total gzip transfer; no remote runtime URLs |
 
+### Reproducing this run exactly
+
+```sh
+# 1. Work outside /home and /workspace. mmap MAP_SHARED fails with ENXIO there on this host,
+#    which truncates extracted packages and stops Chromium launching. /tmp is tmpfs and is fine.
+cp -r <checkout> /tmp/galecrest && cd /tmp/galecrest/mario64
+
+# 2. Install exactly what package-lock.json pins.
+npm ci
+
+# 3. Put the browser on /tmp for the same reason.
+export PLAYWRIGHT_BROWSERS_PATH=/tmp/pw-browsers
+npx playwright install chromium
+
+# 4. Everything: unit tests, tsc + Vite build, Playwright, release audit.
+npm run validate
+```
+
+`npm ci` completes in about a second and reports no truncated files. If `npm install` ever
+extracts a partial `esbuild/install.js` or a partial Execa entry point again, the checkout is on
+the wrong filesystem — move it to `/tmp` rather than retrying, because retrying reproduces it.
+
+Playwright's own downloader stalled part-way through unpacking Chromium on this host. Fetching
+`chromium-linux.zip` and `chromium-headless-shell-linux.zip` for the pinned build and unpacking
+them into `$PLAYWRIGHT_BROWSERS_PATH/chromium-<rev>/` and
+`$PLAYWRIGHT_BROWSERS_PATH/chromium_headless_shell-<rev>/` works and is what was done here. Both
+directories need an `INSTALLATION_COMPLETE` marker file.
+
 ### What the browser tests actually do
 
 **Normal route, no teleporting at all.** One test plays the opening with real key events only —

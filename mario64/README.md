@@ -3,7 +3,7 @@
 An original browser 3D platforming adventure. Wake three beacons, gather five ascent motes, then bait the summit guardian into enabled conductors and movement-attack its exposed core three times to claim the Windglass Crest. No remote gameplay assets are loaded.
 
 ```sh
-npm install
+npm ci
 npm run dev
 npm test
 npm run build
@@ -12,4 +12,4 @@ npm run audit
 npm run preview
 ```
 
-Open the URL printed by Vite. Keyboard: WASD/arrows move (full input runs), Space jumps, Left Shift crouches/ground-pounds and modifies long jumps, E or primary mouse dives, drag the mouse to orbit, wheel zooms, R recenters, and Escape pauses. Standard gamepads and landscape multitouch work at the same time. Pointer lock is optional and never required. Controls, audio, accessibility, quality, and remapping are available from the title and pause menus. See `VALIDATION.md` for reproducible checks and the release-device matrix.
+Open the URL printed by Vite. Keyboard: WASD/arrows move (full input runs), Space jumps, Left Shift crouches/ground-pounds and modifies long jumps, E or primary mouse dives, drag the mouse to orbit, wheel zooms, R recenters, and Escape pauses. Standard gamepads and landscape multitouch work at the same time. Pointer lock is optional and never required. Controls, audio, accessibility, quality, and remapping are available from the title and pause menus. Browser tests need Playwright's Chromium: `export PLAYWRIGHT_BROWSERS_PATH=/tmp/pw-browsers && npx playwright install chromium`. On hosts where `mmap` with `MAP_SHARED` fails (this one, under `/home` and `/workspace`), build and test from `/tmp` or installs extract truncated files and Chromium will not launch. See `VALIDATION.md` for the exact reproduction steps, what was executed, and the release-device matrix that still needs real hardware.

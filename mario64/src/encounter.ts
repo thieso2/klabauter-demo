@@ -22,6 +22,10 @@ export function attackKind(move:MoveState,velocity:Vec3):AttackKind{
 export function resetTransient(s:EncounterState,objectiveThree=false):EncounterState{
  const fresh=initialEncounter();return {...fresh,health:s.maxHealth,guardian:objectiveThree?fresh.guardian:{...fresh.guardian,hits:s.guardian.hits},feedback:'Encounter reset · health restored',feedbackSerial:s.feedbackSerial+1};
 }
+// Assist mode's promise is "less damage": every hit costs half of what it otherwise would, so the
+// same six-pip health bar absorbs twice as many. Returning the amount unchanged, as before, made
+// the setting purely cosmetic.
+export const assistedDamage=(amount:number,assist?:boolean)=>assist?amount/2:amount;
 export function heal(s:EncounterState,amount:number):EncounterState{return amount>0&&s.health<s.maxHealth?{...s,health:Math.min(s.maxHealth,s.health+amount),feedback:'Health restored',feedbackSerial:s.feedbackSerial+1}:s}
 export function damage(s:EncounterState,amount:number):EncounterState{
  if(amount<=0||s.invulnerable>0||s.guardian.mode==='defeated')return s;return {...s,health:Math.max(0,s.health-amount),invulnerable:1.05,feedback:`Impact · ${Math.max(0,s.health-amount)}/${s.maxHealth} health`,feedbackSerial:s.feedbackSerial+1};
