@@ -1,0 +1,260 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Order status prototype</title>
+  <style>
+    body { font: 16px system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    #controls button { margin: 0.25rem; }
+    #controls button.active { outline: 2px solid #06c; font-weight: bold; }
+    #walkthrough-caption { font-style: italic; min-height: 1.2em; }
+    #state-view { border: 1px solid #ccc; padding: 1rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Order status prototype</h1>
+
+  <section id="controls">
+    <h3>Free play</h3>
+    <div id="state-buttons"></div>
+
+    <h3>Guided walkthrough</h3>
+    <button type="button" id="walkthrough-start">Start walkthrough</button>
+    <button type="button" id="walkthrough-next" disabled>Next step</button>
+    <p id="walkthrough-caption"></p>
+  </section>
+
+  <section id="state-view"></section>
+
+  <section id="feedback-panel" data-feedback-panel>
+    <div id="feedback-gate" data-feedback-gate hidden>
+      <span data-feedback-gate-count id="feedback-gate-count">0</span>
+      unresolved feedback item(s)
+      <button type="button" id="feedback-ack-all" data-feedback-ack-all>Acknowledge all</button>
+    </div>
+
+    <form id="feedback-form" data-feedback-form>
+      <label for="feedback-input">Feedback</label>
+      <input
+        type="text"
+        id="feedback-input"
+        data-feedback-input
+        placeholder="What do you think of this state? (tied to the current state)"
+        required
+      />
+      <button type="submit" id="feedback-submit" data-feedback-submit>Submit feedback</button>
+    </form>
+
+    <div id="feedback-offline-warning" data-feedback-offline-warning hidden>
+      Not saved — start the server (<code>node order-status-server.mjs</code>) to persist.
+    </div>
+
+    <ul id="feedback-list" data-feedback-list></ul>
+  </section>
+
+  <style>
+    #feedback-panel { border-top: 2px solid #333; margin-top: 2rem; padding: 1rem; font: 14px system-ui, sans-serif; }
+    #feedback-gate { background: #fff3cd; border: 1px solid #d4a72c; padding: 0.5rem; margin-bottom: 0.75rem; }
+    #feedback-offline-warning { background: #f8d7da; border: 1px solid #d33; padding: 0.5rem; margin: 0.5rem 0; }
+    #feedback-list { list-style: none; padding: 0; }
+    #feedback-list li { border: 1px solid #ccc; padding: 0.5rem; margin-bottom: 0.5rem; }
+    #feedback-list li.resolved { opacity: 0.6; }
+    #feedback-list [data-feedback-context] { font-weight: bold; margin-left: 0.5rem; }
+    #feedback-list [data-feedback-unsaved] { color: #a33; }
+  </style>
+
+  <script>
+    // --- state model (LOGIC.md section 3) ---
+    const STATES = {
+      cart: {
+        label: 'Cart',
+        render: () => `<h2>Cart</h2><p>2 items, $42.00</p>`,
+      },
+      checkout: {
+        label: 'Checkout',
+        render: () => `<h2>Checkout</h2><p>Enter payment details.</p>`,
+      },
+      'checkout-failed': {
+        label: 'Checkout failed',
+        render: () => `<h2>Checkout failed</h2><p>Card declined. Try again.</p>`,
+      },
+      shipped: {
+        label: 'Shipped',
+        render: () => `<h2>Shipped</h2><p>Tracking #12345.</p>`,
+      },
+    };
+
+    const WALKTHROUGH = [
+      { state: 'cart', caption: 'Start: two items in the cart.' },
+      { state: 'checkout', caption: 'User proceeds to checkout.' },
+      { state: 'checkout-failed', caption: 'Payment is declined.' },
+      { state: 'checkout', caption: 'User retries with a different card.' },
+      { state: 'shipped', caption: 'Payment succeeds; order ships.' },
+    ];
+
+    let currentState = 'cart';
+    let walkthroughStep = null; // null = free play; otherwise index into WALKTHROUGH
+
+    function setState(name) {
+      currentState = name;
+      walkthroughStep = null; // any direct setState() call exits walkthrough mode
+      render();
+    }
+
+    function startWalkthrough() {
+      walkthroughStep = 0;
+      currentState = WALKTHROUGH[0].state;
+      render();
+    }
+
+    function nextWalkthroughStep() {
+      if (walkthroughStep === null || walkthroughStep >= WALKTHROUGH.length - 1) return;
+      walkthroughStep += 1;
+      currentState = WALKTHROUGH[walkthroughStep].state;
+      render();
+    }
+
+    function render() {
+      document.getElementById('state-view').innerHTML = STATES[currentState].render();
+      document.querySelectorAll('[data-state-button]').forEach((btn) => {
+        btn.classList.toggle('active', btn.getAttribute('data-state-button') === currentState);
+      });
+      const wt = document.getElementById('walkthrough-caption');
+      wt.textContent = walkthroughStep === null ? '' : WALKTHROUGH[walkthroughStep].caption;
+      document.getElementById('walkthrough-next').disabled =
+        walkthroughStep === null || walkthroughStep >= WALKTHROUGH.length - 1;
+    }
+
+    document.getElementById('state-buttons').innerHTML = Object.entries(STATES)
+      .map(([name, def]) => `<button type="button" data-state-button="${name}">${def.label}</button>`)
+      .join('');
+    document.querySelectorAll('[data-state-button]').forEach((btn) => {
+      btn.addEventListener('click', () => setState(btn.getAttribute('data-state-button')));
+    });
+    document.getElementById('walkthrough-start').addEventListener('click', startWalkthrough);
+    document.getElementById('walkthrough-next').addEventListener('click', nextWalkthroughStep);
+
+    render();
+  </script>
+
+  <script>
+  (function () {
+    // --- branch-specific for LOGIC.md: report the active state name ---
+    function getActiveContext() {
+      return currentState; // set by the state model above — in scope
+    }
+    // -----------------------------------------------------------------
+
+    const state = { entries: [], localOnly: [] };
+
+    const form = document.getElementById('feedback-form');
+    const input = document.getElementById('feedback-input');
+    const list = document.getElementById('feedback-list');
+    const gate = document.getElementById('feedback-gate');
+    const gateCount = document.getElementById('feedback-gate-count');
+    const ackAllBtn = document.getElementById('feedback-ack-all');
+    const offlineWarning = document.getElementById('feedback-offline-warning');
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function renderFeedback() {
+      const all = [...state.entries, ...state.localOnly];
+      list.innerHTML = '';
+      all.forEach((entry) => {
+        const li = document.createElement('li');
+        li.dataset.feedbackEntry = entry.id;
+        li.className = entry.acknowledged ? 'resolved' : 'unresolved';
+        li.innerHTML = `
+          <span data-feedback-text>${escapeHtml(entry.text)}</span>
+          <span data-feedback-context>[${escapeHtml(entry.context)}]</span>
+          <span data-feedback-status>${entry.acknowledged ? 'resolved' : 'unresolved'}</span>
+          ${entry._unsaved ? '<em data-feedback-unsaved>(not saved — start the server to persist)</em>' : ''}
+          ${entry.acknowledged ? '' : `<button type="button" data-feedback-ack="${entry.id}">Acknowledge</button>`}
+        `;
+        list.appendChild(li);
+      });
+
+      const unresolvedCount = all.filter((e) => !e.acknowledged).length;
+      gate.hidden = unresolvedCount === 0;
+      gateCount.textContent = String(unresolvedCount);
+
+      list.querySelectorAll('[data-feedback-ack]').forEach((btn) => {
+        btn.addEventListener('click', () => acknowledge(btn.getAttribute('data-feedback-ack')));
+      });
+    }
+
+    async function loadFeedback() {
+      try {
+        const res = await fetch('/feedback.json');
+        state.entries = await res.json();
+      } catch {
+        state.entries = [];
+      }
+      renderFeedback();
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      const context = getActiveContext();
+      try {
+        const res = await fetch('/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, context }),
+        });
+        if (!res.ok) throw new Error('save failed');
+        state.entries = await res.json();
+        offlineWarning.hidden = true;
+      } catch {
+        state.localOnly.push({
+          id: `local-${Date.now()}`,
+          text,
+          context,
+          timestamp: new Date().toISOString(),
+          acknowledged: false,
+          _unsaved: true,
+        });
+        offlineWarning.hidden = false;
+      }
+      input.value = '';
+      renderFeedback();
+    });
+
+    async function acknowledge(id) {
+      const local = state.localOnly.find((e) => e.id === id);
+      if (local) {
+        local.acknowledged = true;
+        renderFeedback();
+        return;
+      }
+      try {
+        const res = await fetch(`/feedback/${encodeURIComponent(id)}/ack`, { method: 'POST' });
+        if (res.ok) state.entries = await res.json();
+      } catch {
+        // best effort — server unreachable, leave state as-is
+      }
+      renderFeedback();
+    }
+
+    ackAllBtn.addEventListener('click', async () => {
+      state.localOnly.forEach((e) => (e.acknowledged = true));
+      try {
+        const res = await fetch('/feedback/ack-all', { method: 'POST' });
+        if (res.ok) state.entries = await res.json();
+      } catch {
+        // best effort
+      }
+      renderFeedback();
+    });
+
+    loadFeedback();
+  })();
+  </script>
+</body>
+</html>
