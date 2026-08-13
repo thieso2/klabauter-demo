@@ -1,0 +1,284 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Pricing page prototype</title>
+  <style>
+    body { font: 16px system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    #variant-picker button { margin: 0.25rem; }
+    #variant-picker button.active { outline: 2px solid #06c; font-weight: bold; }
+    #variant-view { border: 1px solid #ccc; padding: 1rem; margin: 1rem 0; }
+    .cards { display: flex; gap: 1rem; }
+    .card { border: 1px solid #ccc; padding: 1rem; flex: 1; text-align: center; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
+    th[data-sort] { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Pricing page prototype</h1>
+
+  <section id="variant-picker"></section>
+
+  <section id="variant-view"></section>
+
+  <section id="feedback-panel" data-feedback-panel>
+    <div id="feedback-gate" data-feedback-gate hidden>
+      <span data-feedback-gate-count id="feedback-gate-count">0</span>
+      unresolved feedback item(s)
+      <button type="button" id="feedback-ack-all" data-feedback-ack-all>Acknowledge all</button>
+    </div>
+
+    <form id="feedback-form" data-feedback-form>
+      <label for="feedback-input">Feedback</label>
+      <input
+        type="text"
+        id="feedback-input"
+        data-feedback-input
+        placeholder="What do you think of this variant? (tied to the current variant)"
+        required
+      />
+      <button type="submit" id="feedback-submit" data-feedback-submit>Submit feedback</button>
+    </form>
+
+    <div id="feedback-offline-warning" data-feedback-offline-warning hidden>
+      Not saved — start the server (<code>node pricing-server.mjs</code>) to persist.
+    </div>
+
+    <ul id="feedback-list" data-feedback-list></ul>
+  </section>
+
+  <style>
+    #feedback-panel { border-top: 2px solid #333; margin-top: 2rem; padding: 1rem; font: 14px system-ui, sans-serif; }
+    #feedback-gate { background: #fff3cd; border: 1px solid #d4a72c; padding: 0.5rem; margin-bottom: 0.75rem; }
+    #feedback-offline-warning { background: #f8d7da; border: 1px solid #d33; padding: 0.5rem; margin: 0.5rem 0; }
+    #feedback-list { list-style: none; padding: 0; }
+    #feedback-list li { border: 1px solid #ccc; padding: 0.5rem; margin-bottom: 0.5rem; }
+    #feedback-list li.resolved { opacity: 0.6; }
+    #feedback-list [data-feedback-context] { font-weight: bold; margin-left: 0.5rem; }
+    #feedback-list [data-feedback-unsaved] { color: #a33; }
+  </style>
+
+  <script>
+    // --- variant model (UI.md section 3) ---
+    const VARIANTS = {
+      cards: {
+        label: 'Card grid',
+        render: (root) => {
+          root.innerHTML = `
+            <div class="cards">
+              <div class="card" data-plan="basic"><h3>Basic</h3><p>$9/mo</p><button type="button" data-select-plan="basic">Choose</button></div>
+              <div class="card" data-plan="pro"><h3>Pro</h3><p>$29/mo</p><button type="button" data-select-plan="pro">Choose</button></div>
+              <div class="card" data-plan="team"><h3>Team</h3><p>$99/mo</p><button type="button" data-select-plan="team">Choose</button></div>
+            </div>
+            <p id="cards-selection">No plan selected.</p>
+          `;
+          root.querySelectorAll('[data-select-plan]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              root.querySelector('#cards-selection').textContent = `Selected: ${btn.getAttribute('data-select-plan')}`;
+            });
+          });
+        },
+      },
+      table: {
+        label: 'Comparison table',
+        render: (root) => {
+          root.innerHTML = `
+            <table>
+              <thead><tr><th data-sort="name">Plan</th><th data-sort="price">Price</th><th>Seats</th></tr></thead>
+              <tbody id="table-body">
+                <tr><td>Basic</td><td data-price="9">$9/mo</td><td>1</td></tr>
+                <tr><td>Pro</td><td data-price="29">$29/mo</td><td>5</td></tr>
+                <tr><td>Team</td><td data-price="99">$99/mo</td><td>20</td></tr>
+              </tbody>
+            </table>
+          `;
+          root.querySelector('[data-sort="price"]').addEventListener('click', () => {
+            const body = root.querySelector('#table-body');
+            const rows = [...body.querySelectorAll('tr')].sort(
+              (a, b) => Number(a.querySelector('[data-price]').dataset.price) - Number(b.querySelector('[data-price]').dataset.price)
+            );
+            rows.forEach((row) => body.appendChild(row));
+          });
+        },
+      },
+      wizard: {
+        label: 'Step wizard',
+        render: (root) => {
+          let step = 0;
+          const steps = ['Pick a plan', 'Enter team size', 'Confirm'];
+          const renderStep = () => {
+            root.innerHTML = `
+              <p>Step ${step + 1} of ${steps.length}: ${steps[step]}</p>
+              <button type="button" data-wizard-back ${step === 0 ? 'disabled' : ''}>Back</button>
+              <button type="button" data-wizard-next ${step === steps.length - 1 ? 'disabled' : ''}>Next</button>
+            `;
+            root.querySelector('[data-wizard-back]').addEventListener('click', () => { step = Math.max(0, step - 1); renderStep(); });
+            root.querySelector('[data-wizard-next]').addEventListener('click', () => { step = Math.min(steps.length - 1, step + 1); renderStep(); });
+          };
+          renderStep();
+        },
+      },
+    };
+
+    const DEFAULT_VARIANT = 'cards';
+
+    function getVariantFromURL() {
+      const params = new URLSearchParams(location.search);
+      const requested = params.get('variant');
+      return requested && VARIANTS[requested] ? requested : DEFAULT_VARIANT;
+    }
+
+    let currentVariant = getVariantFromURL();
+
+    function setVariant(name) {
+      if (!VARIANTS[name]) return;
+      currentVariant = name;
+      const url = new URL(location.href);
+      url.searchParams.set('variant', name);
+      history.pushState({}, '', url);
+      renderVariant();
+    }
+
+    function renderVariant() {
+      VARIANTS[currentVariant].render(document.getElementById('variant-view'));
+      document.querySelectorAll('[data-variant-button]').forEach((btn) => {
+        btn.classList.toggle('active', btn.getAttribute('data-variant-button') === currentVariant);
+      });
+    }
+
+    window.addEventListener('popstate', () => {
+      currentVariant = getVariantFromURL();
+      renderVariant();
+    });
+
+    document.getElementById('variant-picker').innerHTML = Object.entries(VARIANTS)
+      .map(([name, def]) => `<button type="button" data-variant-button="${name}">${def.label}</button>`)
+      .join('');
+    document.querySelectorAll('[data-variant-button]').forEach((btn) => {
+      btn.addEventListener('click', () => setVariant(btn.getAttribute('data-variant-button')));
+    });
+
+    renderVariant();
+  </script>
+
+  <script>
+    // --- feedback panel (UI.md section 5), wired to the variant model above ---
+    (function () {
+      function getActiveContext() {
+        return currentVariant;
+      }
+
+      const state = { entries: [], localOnly: [] };
+
+      const form = document.getElementById('feedback-form');
+      const input = document.getElementById('feedback-input');
+      const list = document.getElementById('feedback-list');
+      const gate = document.getElementById('feedback-gate');
+      const gateCount = document.getElementById('feedback-gate-count');
+      const ackAllBtn = document.getElementById('feedback-ack-all');
+      const offlineWarning = document.getElementById('feedback-offline-warning');
+
+      function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      function renderFeedback() {
+        const all = [...state.entries, ...state.localOnly];
+        list.innerHTML = '';
+        all.forEach((entry) => {
+          const li = document.createElement('li');
+          li.dataset.feedbackEntry = entry.id;
+          li.className = entry.acknowledged ? 'resolved' : 'unresolved';
+          li.innerHTML = `
+            <span data-feedback-text>${escapeHtml(entry.text)}</span>
+            <span data-feedback-context>[${escapeHtml(entry.context)}]</span>
+            <span data-feedback-status>${entry.acknowledged ? 'resolved' : 'unresolved'}</span>
+            ${entry._unsaved ? '<em data-feedback-unsaved>(not saved — start the server to persist)</em>' : ''}
+            ${entry.acknowledged ? '' : `<button type="button" data-feedback-ack="${entry.id}">Acknowledge</button>`}
+          `;
+          list.appendChild(li);
+        });
+
+        const unresolvedCount = all.filter((e) => !e.acknowledged).length;
+        gate.hidden = unresolvedCount === 0;
+        gateCount.textContent = String(unresolvedCount);
+
+        list.querySelectorAll('[data-feedback-ack]').forEach((btn) => {
+          btn.addEventListener('click', () => acknowledge(btn.getAttribute('data-feedback-ack')));
+        });
+      }
+
+      async function loadFeedback() {
+        try {
+          const res = await fetch('/feedback.json');
+          state.entries = await res.json();
+        } catch {
+          state.entries = [];
+        }
+        renderFeedback();
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        const context = getActiveContext();
+        try {
+          const res = await fetch('/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, context }),
+          });
+          if (!res.ok) throw new Error('save failed');
+          state.entries = await res.json();
+          offlineWarning.hidden = true;
+        } catch {
+          state.localOnly.push({
+            id: `local-${Date.now()}`,
+            text,
+            context,
+            timestamp: new Date().toISOString(),
+            acknowledged: false,
+            _unsaved: true,
+          });
+          offlineWarning.hidden = false;
+        }
+        input.value = '';
+        renderFeedback();
+      });
+
+      async function acknowledge(id) {
+        const local = state.localOnly.find((e) => e.id === id);
+        if (local) {
+          local.acknowledged = true;
+          renderFeedback();
+          return;
+        }
+        try {
+          const res = await fetch(`/feedback/${encodeURIComponent(id)}/ack`, { method: 'POST' });
+          if (res.ok) state.entries = await res.json();
+        } catch {
+          // best effort — server unreachable, leave state as-is
+        }
+        renderFeedback();
+      }
+
+      ackAllBtn.addEventListener('click', async () => {
+        state.localOnly.forEach((e) => (e.acknowledged = true));
+        try {
+          const res = await fetch('/feedback/ack-all', { method: 'POST' });
+          if (res.ok) state.entries = await res.json();
+        } catch {
+          // best effort
+        }
+        renderFeedback();
+      });
+
+      loadFeedback();
+    })();
+  </script>
+</body>
+</html>
