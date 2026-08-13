@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2048 &mdash; Gothic</title>
+<style>
+  @font-face {
+    /* Blackletter-style display face built from system fallbacks only;
+       no external font files are shipped, so no @font-face src is declared. */
+  }
+
+  :root {
+    --stone-dark: #16130f;
+    --stone-mid: #2b241c;
+    --stone-light: #3f362a;
+    --parchment: #d8c9a3;
+    --parchment-dim: #b6a67e;
+    --blood: #7a1f1f;
+    --gold: #a9873f;
+    --ink: #e8dfc3;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: radial-gradient(ellipse at top, #241f18 0%, var(--stone-dark) 70%);
+    color: var(--ink);
+    font-family: "Old English Text MT", "Blackletter686 BT", "UnifrakturMaguntia", Cambria, Georgia, "Times New Roman", serif;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+  }
+
+  body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px 12px 60px;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  h1.title {
+    text-align: center;
+    font-size: 2.6em;
+    letter-spacing: 2px;
+    margin: 0 0 6px;
+    color: var(--gold);
+    text-shadow: 0 0 8px rgba(169, 135, 63, 0.5), 2px 2px 0 #000;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-family: Georgia, serif;
+    font-style: italic;
+    color: var(--parchment-dim);
+    margin: 0 0 18px;
+    font-size: 0.95em;
+    letter-spacing: 1px;
+  }
+
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .scores {
+    display: flex;
+    gap: 10px;
+  }
+
+  .score-box {
+    background: linear-gradient(180deg, var(--stone-light), var(--stone-mid));
+    border: 2px solid var(--gold);
+    border-radius: 4px;
+    padding: 6px 14px;
+    text-align: center;
+    min-width: 78px;
+    box-shadow: inset 0 0 6px rgba(0,0,0,0.6);
+  }
+
+  .score-box .label {
+    font-family: Georgia, serif;
+    font-size: 0.6em;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--parchment-dim);
+    display: block;
+  }
+
+  .score-box .value {
+    font-family: Georgia, serif;
+    font-weight: bold;
+    font-size: 1.3em;
+    color: var(--ink);
+  }
+
+  #restart-btn {
+    background: linear-gradient(180deg, var(--blood), #4a1010);
+    color: var(--ink);
+    border: 2px solid var(--gold);
+    border-radius: 4px;
+    padding: 10px 16px;
+    font-family: Georgia, serif;
+    font-weight: bold;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+
+  #restart-btn:hover {
+    background: linear-gradient(180deg, #8f2626, #5a1414);
+  }
+
+  #restart-btn:active {
+    transform: translateY(1px);
+  }
+
+  .board-wrap {
+    position: relative;
+    background: linear-gradient(160deg, #201a13, #0e0c09);
+    border: 6px solid var(--gold);
+    border-image: repeating-linear-gradient(45deg, #a9873f, #6e5626 6px, #a9873f 12px) 6;
+    border-radius: 6px;
+    padding: 10px;
+    box-shadow: 0 0 0 2px #000, 0 8px 24px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.8);
+  }
+
+  #board {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 10px;
+    aspect-ratio: 1 / 1;
+  }
+
+  .cell {
+    position: relative;
+    background: #150f0a;
+    background-image:
+      radial-gradient(circle at 30% 30%, rgba(255,255,255,0.03), transparent 60%),
+      repeating-linear-gradient(120deg, rgba(0,0,0,0.15) 0, rgba(0,0,0,0.15) 2px, transparent 2px, transparent 8px);
+    border: 1px solid #3a3024;
+    border-radius: 4px;
+  }
+
+  .tile {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-family: Georgia, serif;
+    font-weight: bold;
+    color: var(--stone-dark);
+    border: 1px solid rgba(0,0,0,0.4);
+    box-shadow: 0 2px 3px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition: top 0.1s ease-in-out, left 0.1s ease-in-out;
+  }
+
+  .tile-2    { background: linear-gradient(160deg, #e7d9b3, #c9b689); color: #3a2f1e; }
+  .tile-4    { background: linear-gradient(160deg, #dcc48d, #b8985a); color: #3a2f1e; }
+  .tile-8    { background: linear-gradient(160deg, #c98f4a, #a06a2b); color: #f4ead2; }
+  .tile-16   { background: linear-gradient(160deg, #b8722f, #8a4f1c); color: #f4ead2; }
+  .tile-32   { background: linear-gradient(160deg, #a25336, #7a3520); color: #f4ead2; }
+  .tile-64   { background: linear-gradient(160deg, #8f3a2c, #661f16); color: #f4ead2; }
+  .tile-128  { background: linear-gradient(160deg, #7a1f1f, #4a1010); color: #e8dfc3; }
+  .tile-256  { background: linear-gradient(160deg, #631a3a, #3d0f24); color: #e8dfc3; }
+  .tile-512  { background: linear-gradient(160deg, #4a1a63, #2a0e39); color: #e8dfc3; }
+  .tile-1024 { background: linear-gradient(160deg, #2a2a63, #17173d); color: #e8dfc3; }
+  .tile-2048 { background: linear-gradient(160deg, #a9873f, #6e5626); color: #1a1408; box-shadow: 0 0 16px 4px rgba(169,135,63,0.8); }
+
+  .tile-value-1 { font-size: 1.9em; }
+  .tile-value-2 { font-size: 1.9em; }
+  .tile-value-3 { font-size: 1.6em; }
+  .tile-value-4 { font-size: 1.3em; }
+
+  #status-message {
+    text-align: center;
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 4px;
+    font-family: Georgia, serif;
+    font-size: 1.3em;
+    letter-spacing: 1px;
+    border: 2px solid var(--gold);
+    background: linear-gradient(180deg, var(--stone-light), var(--stone-mid));
+    display: none;
+  }
+
+  #status-message.visible { display: block; }
+  #status-message.won { color: #e8c56a; }
+  #status-message.lost { color: #c96a5a; }
+
+  .instructions {
+    text-align: center;
+    margin-top: 16px;
+    font-family: Georgia, serif;
+    font-size: 0.8em;
+    color: var(--parchment-dim);
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1 class="title">2048</h1>
+  <p class="subtitle">A Gothic Reckoning</p>
+
+  <div class="top-bar">
+    <div class="scores">
+      <div class="score-box">
+        <span class="label">Score</span>
+        <span class="value" id="score">0</span>
+      </div>
+      <div class="score-box">
+        <span class="label">Best</span>
+        <span class="value" id="best-score">0</span>
+      </div>
+    </div>
+    <button id="restart-btn" class="restart-btn">New Game</button>
+  </div>
+
+  <div class="board-wrap">
+    <div id="board"></div>
+  </div>
+
+  <div id="status-message" class="status-message"></div>
+
+  <p class="instructions">Arrow keys or swipe to slide the tiles. Merge alike to reach 2048.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var SIZE = 4;
+  var STATE_KEY = "2048-gothic-state";
+  var BEST_KEY = "2048-gothic-best";
+
+  // ---- Pure move/merge function (test seam) ----
+  // Takes a single row/column array (left-to-right / top-to-bottom order,
+  // 0 = empty) and slides+merges it toward index 0 ("left").
+  // Returns { line: newArray, scoreDelta: number, changed: boolean }.
+  function slideLine(line) {
+    var original = line.slice();
+    var values = line.filter(function (v) { return v !== 0; });
+    var result = [];
+    var scoreDelta = 0;
+
+    for (var i = 0; i < values.length; i++) {
+      if (i + 1 < values.length && values[i] === values[i + 1]) {
+        var merged = values[i] * 2;
+        result.push(merged);
+        scoreDelta += merged;
+        i++; // skip the tile that was merged into this one
+      } else {
+        result.push(values[i]);
+      }
+    }
+    while (result.length < line.length) result.push(0);
+
+    var changed = false;
+    for (var j = 0; j < original.length; j++) {
+      if (original[j] !== result[j]) { changed = true; break; }
+    }
+
+    return { line: result, scoreDelta: scoreDelta, changed: changed };
+  }
+
+  // Applies slideLine to an entire board for a given direction.
+  // board is a SIZE x SIZE array of arrays (rows), 0 = empty.
+  function moveBoard(board, direction) {
+    var newBoard = board.map(function (row) { return row.slice(); });
+    var totalScoreDelta = 0;
+    var anyChanged = false;
+
+    function getLine(index) {
+      if (direction === "left" || direction === "right") {
+        var row = newBoard[index].slice();
+        return direction === "right" ? row.reverse() : row;
+      } else {
+        var col = [];
+        for (var r = 0; r < SIZE; r++) col.push(newBoard[r][index]);
+        return direction === "up" ? col : col.reverse();
+      }
+    }
+
+    function setLine(index, line) {
+      if (direction === "left" || direction === "right") {
+        var row = direction === "right" ? line.slice().reverse() : line;
+        newBoard[index] = row;
+      } else {
+        var col = direction === "up" ? line : line.slice().reverse();
+        for (var r = 0; r < SIZE; r++) newBoard[r][index] = col[r];
+      }
+    }
+
+    for (var i = 0; i < SIZE; i++) {
+      var res = slideLine(getLine(i));
+      setLine(i, res.line);
+      totalScoreDelta += res.scoreDelta;
+      if (res.changed) anyChanged = true;
+    }
+
+    return { board: newBoard, scoreDelta: totalScoreDelta, changed: anyChanged };
+  }
+
+  // ---- Loss-detection function (test seam) ----
+  function isGameOver(board) {
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        if (board[r][c] === 0) return false;
+      }
+    }
+    for (var r2 = 0; r2 < SIZE; r2++) {
+      for (var c2 = 0; c2 < SIZE; c2++) {
+        var v = board[r2][c2];
+        if (c2 + 1 < SIZE && board[r2][c2 + 1] === v) return false;
+        if (r2 + 1 < SIZE && board[r2 + 1][c2] === v) return false;
+      }
+    }
+    return true;
+  }
+
+  function hasWon(board) {
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        if (board[r][c] >= 2048) return true;
+      }
+    }
+    return false;
+  }
+
+  // ---- Spawn function with injectable randomness (test seam) ----
+  // rng defaults to Math.random but can be overridden for deterministic tests.
+  function spawnTile(board, rng) {
+    rng = rng || Math.random;
+    var empties = [];
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        if (board[r][c] === 0) empties.push([r, c]);
+      }
+    }
+    if (empties.length === 0) return board;
+    var pick = empties[Math.floor(rng() * empties.length)];
+    var value = rng() < 0.9 ? 2 : 4;
+    board[pick[0]][pick[1]] = value;
+    return board;
+  }
+
+  function emptyBoard() {
+    var b = [];
+    for (var r = 0; r < SIZE; r++) b.push([0, 0, 0, 0]);
+    return b;
+  }
+
+  // ---- Game state ----
+  var game = {
+    board: emptyBoard(),
+    score: 0,
+    best: 0,
+    won: false,
+    lost: false
+  };
+
+  var boardEl = document.getElementById("board");
+  var scoreEl = document.getElementById("score");
+  var bestEl = document.getElementById("best-score");
+  var statusEl = document.getElementById("status-message");
+  var restartBtn = document.getElementById("restart-btn");
+
+  function loadBest() {
+    try {
+      var raw = localStorage.getItem(BEST_KEY);
+      var n = raw ? parseInt(raw, 10) : 0;
+      return isNaN(n) ? 0 : n;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  function saveBest(value) {
+    try { localStorage.setItem(BEST_KEY, String(value)); } catch (e) { /* ignore */ }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STATE_KEY, JSON.stringify({
+        board: game.board,
+        score: game.score,
+        won: game.won,
+        lost: game.lost
+      }));
+    } catch (e) { /* ignore */ }
+  }
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STATE_KEY);
+      if (!raw) return null;
+      var data = JSON.parse(raw);
+      if (!data || !Array.isArray(data.board) || data.board.length !== SIZE) return null;
+      for (var r = 0; r < SIZE; r++) {
+        if (!Array.isArray(data.board[r]) || data.board[r].length !== SIZE) return null;
+      }
+      if (typeof data.score !== "number") return null;
+      return data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function newGame() {
+    game.board = emptyBoard();
+    game.score = 0;
+    game.won = false;
+    game.lost = false;
+    spawnTile(game.board);
+    spawnTile(game.board);
+    saveState();
+    render();
+  }
+
+  function render() {
+    boardEl.innerHTML = "";
+    var wrapRect = boardEl.getBoundingClientRect();
+    var cellSize = (wrapRect.width - 10 * 3) / 4; // 3 gaps of 10px between 4 cells
+
+    for (var i = 0; i < SIZE * SIZE; i++) {
+      var cellDiv = document.createElement("div");
+      cellDiv.className = "cell";
+      cellDiv.id = "cell-" + Math.floor(i / SIZE) + "-" + (i % SIZE);
+      boardEl.appendChild(cellDiv);
+    }
+
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        var v = game.board[r][c];
+        if (v === 0) continue;
+        var tile = document.createElement("div");
+        var digits = String(v).length;
+        tile.className = "tile tile-" + v + " tile-value-" + Math.min(digits, 4);
+        tile.id = "tile-" + r + "-" + c;
+        tile.textContent = v;
+        tile.style.width = "calc(25% - 7.5px)";
+        tile.style.height = "calc(25% - 7.5px)";
+        tile.style.left = "calc(" + (c * 25) + "% + " + (c * 2.5) + "px)";
+        tile.style.top = "calc(" + (r * 25) + "% + " + (r * 2.5) + "px)";
+        boardEl.appendChild(tile);
+      }
+    }
+
+    scoreEl.textContent = String(game.score);
+    bestEl.textContent = String(game.best);
+
+    if (game.won) {
+      statusEl.textContent = "Thou hast conquered! 2048 attained.";
+      statusEl.className = "status-message visible won";
+    } else if (game.lost) {
+      statusEl.textContent = "The keep has fallen. No moves remain.";
+      statusEl.className = "status-message visible lost";
+    } else {
+      statusEl.textContent = "";
+      statusEl.className = "status-message";
+    }
+  }
+
+  function boardsEqual(a, b) {
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        if (a[r][c] !== b[r][c]) return false;
+      }
+    }
+    return true;
+  }
+
+  function move(direction) {
+    if (game.won || game.lost) return;
+
+    var result = moveBoard(game.board, direction);
+    if (!result.changed) return;
+
+    game.board = result.board;
+    game.score += result.scoreDelta;
+    if (game.score > game.best) {
+      game.best = game.score;
+      saveBest(game.best);
+    }
+
+    spawnTile(game.board);
+
+    if (hasWon(game.board)) {
+      game.won = true;
+    } else if (isGameOver(game.board)) {
+      game.lost = true;
+    }
+
+    saveState();
+    render();
+  }
+
+  // ---- Input handling ----
+  var KEY_DIRECTIONS = {
+    ArrowUp: "up",
+    ArrowDown: "down",
+    ArrowLeft: "left",
+    ArrowRight: "right"
+  };
+
+  document.addEventListener("keydown", function (e) {
+    var direction = KEY_DIRECTIONS[e.key];
+    if (!direction) return;
+    e.preventDefault();
+    move(direction);
+  }, { passive: false });
+
+  var touchStartX = null;
+  var touchStartY = null;
+  var SWIPE_THRESHOLD = 24;
+
+  boardEl.addEventListener("touchstart", function (e) {
+    if (e.touches.length !== 1) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  boardEl.addEventListener("touchend", function (e) {
+    if (touchStartX === null || touchStartY === null) return;
+    var touch = e.changedTouches[0];
+    var dx = touch.clientX - touchStartX;
+    var dy = touch.clientY - touchStartY;
+    touchStartX = null;
+    touchStartY = null;
+
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_THRESHOLD) return;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      move(dx > 0 ? "right" : "left");
+    } else {
+      move(dy > 0 ? "down" : "up");
+    }
+  }, { passive: true });
+
+  restartBtn.addEventListener("click", newGame);
+
+  window.addEventListener("resize", render);
+
+  // ---- Boot ----
+  game.best = loadBest();
+  var saved = loadState();
+  if (saved) {
+    game.board = saved.board;
+    game.score = saved.score;
+    game.won = !!saved.won;
+    game.lost = !!saved.lost;
+    render();
+  } else {
+    newGame();
+  }
+
+  // Expose pure functions for manual/console testing (test seams from spec section 5).
+  window.__gothic2048 = {
+    slideLine: slideLine,
+    moveBoard: moveBoard,
+    isGameOver: isGameOver,
+    hasWon: hasWon,
+    spawnTile: spawnTile
+  };
+})();
+</script>
+</body>
+</html>
