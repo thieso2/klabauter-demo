@@ -1,10 +1,16 @@
 import './style.css';
 import { MAX_ATTEMPTS, guess, revealedWord, startRound, type RoundState } from './game';
-import { HangmanScene } from './scene';
+import { HangmanScene, type PresentationMode } from './scene';
 import { stageFromWrongGuesses } from './stage';
 import { TIERS, type Tier } from './words';
 
 const DEFAULT_TIER: Tier = 'medium';
+const DEFAULT_MODE: PresentationMode = 'dark';
+const MODES: { value: PresentationMode; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'high-contrast', label: 'High Contrast' },
+];
 
 const root = document.querySelector<HTMLElement>('#app')!;
 root.innerHTML = `
@@ -16,6 +22,21 @@ root.innerHTML = `
         <label>
           <input type="radio" name="tier" value="${tier}" ${tier === DEFAULT_TIER ? 'checked' : ''} />
           <span>${tier[0]!.toUpperCase()}${tier.slice(1)}</span>
+        </label>`,
+      ).join('')}
+    </div>
+    <div class="mode-select" id="mode-select" role="radiogroup" aria-label="Presentation mode">
+      ${MODES.map(
+        (mode) => `
+        <label>
+          <input
+            type="radio"
+            name="mode"
+            value="${mode.value}"
+            data-testid="mode-${mode.value}"
+            ${mode.value === DEFAULT_MODE ? 'checked' : ''}
+          />
+          <span>${mode.label}</span>
         </label>`,
       ).join('')}
     </div>
@@ -42,6 +63,9 @@ const keyboardEl = document.querySelector<HTMLElement>('#keyboard')!;
 const roundBtn = document.querySelector<HTMLButtonElement>('#round-btn')!;
 const tierInputs = Array.from(
   document.querySelectorAll<HTMLInputElement>('#tier-select input[type="radio"]'),
+);
+const modeInputs = Array.from(
+  document.querySelectorAll<HTMLInputElement>('#mode-select input[type="radio"]'),
 );
 
 const scene = new HangmanScene(sceneContainer);
@@ -127,7 +151,20 @@ function render(): void {
   }
 }
 
+function applyMode(mode: PresentationMode): void {
+  document.documentElement.dataset.mode = mode;
+  scene.setMode(mode);
+}
+
 roundBtn.addEventListener('click', beginRound);
+
+// Presentation mode is always reachable and never touches round state (§4 of the spec) — no
+// disabling during a round, no interaction with `round` at all.
+for (const input of modeInputs) {
+  input.addEventListener('change', () => {
+    if (input.checked) applyMode(input.value as PresentationMode);
+  });
+}
 
 window.addEventListener('keydown', (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -138,4 +175,14 @@ window.addEventListener('keydown', (event) => {
   applyGuess(letter);
 });
 
+applyMode(DEFAULT_MODE);
 render();
+
+// Test-only seam (mirrors mario64's `__galecrestTest`): exposes the secret word so the Playwright
+// smoke test can script a deterministic win/loss route instead of guessing blind. Only wired up
+// when the page is loaded with `?test=1`; never reachable in normal play.
+if (new URLSearchParams(location.search).get('test') === '1') {
+  (window as unknown as { __hangmanTest: { word: () => string | null } }).__hangmanTest = {
+    word: () => round?.word ?? null,
+  };
+}

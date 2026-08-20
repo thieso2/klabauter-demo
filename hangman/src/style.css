@@ -1,13 +1,44 @@
-:root {
+:root,
+[data-mode='dark'] {
   color-scheme: dark;
   --bg: #0f1b22;
   --panel: #16252c;
   --ink: #eaf3f3;
   --muted: #9db3ba;
   --accent: #4fd6c4;
+  --accent-ink: #06231f;
   --wrong: #e2685a;
+  --wrong-ink: #2a0a06;
   --border: #274049;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+[data-mode='light'] {
+  color-scheme: light;
+  --bg: #f2f6f7;
+  --panel: #ffffff;
+  --ink: #16252c;
+  --muted: #51666d;
+  --accent: #0f7a68;
+  --accent-ink: #ffffff;
+  --wrong: #b3261e;
+  --wrong-ink: #ffffff;
+  --border: #c7d2d5;
+}
+
+/* High contrast: near-black/white/yellow only, so every readable surface clears WCAG AA
+ * comfortably against its background — this is the mode the spec requires to stay legible. */
+[data-mode='high-contrast'] {
+  color-scheme: dark;
+  --bg: #000000;
+  --panel: #000000;
+  --ink: #ffffff;
+  --muted: #ffffff;
+  --accent: #ffe000;
+  --accent-ink: #000000;
+  --wrong: #ff5c5c;
+  --wrong-ink: #000000;
+  --border: #ffffff;
 }
 
 * {
@@ -19,6 +50,7 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--ink);
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 #app {
@@ -43,7 +75,8 @@ header h1 {
   letter-spacing: 0.02em;
 }
 
-.tier-select {
+.tier-select,
+.mode-select {
   display: flex;
   gap: 0.4rem;
   background: var(--panel);
@@ -52,22 +85,26 @@ header h1 {
   padding: 0.25rem;
 }
 
-.tier-select label {
+.tier-select label,
+.mode-select label {
   position: relative;
 }
 
-.tier-select input {
+.tier-select input,
+.mode-select input {
   position: absolute;
   opacity: 0;
   inset: 0;
   cursor: pointer;
 }
 
-.tier-select input:disabled {
+.tier-select input:disabled,
+.mode-select input:disabled {
   cursor: not-allowed;
 }
 
-.tier-select span {
+.tier-select span,
+.mode-select span {
   display: inline-block;
   padding: 0.35rem 0.85rem;
   border-radius: 999px;
@@ -76,9 +113,10 @@ header h1 {
   transition: background-color 200ms ease, color 200ms ease;
 }
 
-.tier-select input:checked + span {
+.tier-select input:checked + span,
+.mode-select input:checked + span {
   background: var(--accent);
-  color: #06231f;
+  color: var(--accent-ink);
 }
 
 .tier-select input:disabled + span {
@@ -104,7 +142,8 @@ main {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
-  background: radial-gradient(circle at 50% 30%, #1c2f38, #0b1419);
+  background: radial-gradient(circle at 50% 30%, var(--panel), var(--bg));
+  transition: background 200ms ease;
 }
 
 #scene-container canvas {
@@ -178,13 +217,13 @@ main {
 
 #keyboard button.correct {
   background: var(--accent);
-  color: #06231f;
+  color: var(--accent-ink);
   border-color: var(--accent);
 }
 
 #keyboard button.incorrect {
   background: var(--wrong);
-  color: #2a0a06;
+  color: var(--wrong-ink);
   border-color: var(--wrong);
 }
 
@@ -199,7 +238,7 @@ main {
   border-radius: 999px;
   border: none;
   background: var(--accent);
-  color: #06231f;
+  color: var(--accent-ink);
   font-weight: 700;
   cursor: pointer;
   transition: filter 150ms ease;

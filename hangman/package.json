@@ -9,8 +9,10 @@
   "scripts": {
     "dev": "vite",
     "test": "vitest run",
+    "test:browser": "playwright test",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "validate": "npm test && npm run build && npm run test:browser"
   },
   "dependencies": {
     "three": "0.165.0"
