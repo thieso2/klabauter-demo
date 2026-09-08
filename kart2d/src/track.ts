@@ -7,8 +7,19 @@ export interface Gate {
   forward: Vec2;
 }
 
+/** Colors used to draw a track's surface and finish gate; the only per-track visual theming. */
+export interface TrackTheme {
+  background: string;
+  wall: string;
+  paved: string;
+  laneMarking: string;
+  checkerA: string;
+  checkerB: string;
+}
+
 export interface Track {
   name: string;
+  theme: TrackTheme;
   centerline: Vec2[]; // closed loop, driving direction is index-ascending
   /** Paved surface half-width: inside this, full speed. Beyond it and up to hardWallHalfWidth, speed is capped. */
   pavedHalfWidth: number;
@@ -147,6 +158,7 @@ function makeGate(centerline: Vec2[], index: number, halfWidth: number): Gate {
 
 function buildTrack(opts: {
   name: string;
+  theme: TrackTheme;
   centerline: Vec2[];
   pavedHalfWidth: number;
   hardWallHalfWidth: number;
@@ -184,6 +196,7 @@ function buildTrack(opts: {
 
   return {
     name: opts.name,
+    theme: opts.theme,
     centerline,
     pavedHalfWidth: opts.pavedHalfWidth,
     hardWallHalfWidth: opts.hardWallHalfWidth,
@@ -213,12 +226,84 @@ function generateDesertCenterline(): Vec2[] {
 
 export const desertCanyon: Track = buildTrack({
   name: 'Desert Canyon Loop',
+  theme: {
+    background: '#5c4325',
+    wall: '#d9a066',
+    paved: '#4a4238',
+    laneMarking: 'rgba(255,255,255,0.35)',
+    checkerA: '#f1faee',
+    checkerB: '#1d1d1d',
+  },
   centerline: generateDesertCenterline(),
   pavedHalfWidth: 110,
   hardWallHalfWidth: 230,
   gateHalfWidth: 160,
   checkpointIndices: [6, 12, 18, 24, 30, 36],
   itemBoxIndices: [3, 9, 15, 21, 27, 33, 39],
+  startRowSpacing: 60,
+  startColSpacing: 45,
+});
+
+function generateSnowyCenterline(): Vec2[] {
+  const points: Vec2[] = [];
+  const count = 46;
+  for (let i = 0; i < count; i++) {
+    const t = (i / count) * Math.PI * 2;
+    const rx = 560 + Math.sin(t * 3) * 150 + Math.cos(t * 5) * 40;
+    const ry = 480 + Math.cos(t * 4) * 140 - Math.sin(t * 2) * 30;
+    points.push({ x: Math.cos(t) * rx, y: Math.sin(t) * ry });
+  }
+  return points;
+}
+
+/** Snowy mountain switchback: icy blue-white palette, tighter zigzagging turns than the desert loop. */
+export const snowyMountain: Track = buildTrack({
+  name: 'Snowy Mountain Switchback',
+  theme: {
+    background: '#e8f1f8',
+    wall: '#8fb4d9',
+    paved: '#c9d9e6',
+    laneMarking: 'rgba(30,58,89,0.35)',
+    checkerA: '#1e3a59',
+    checkerB: '#ffffff',
+  },
+  centerline: generateSnowyCenterline(),
+  pavedHalfWidth: 100,
+  hardWallHalfWidth: 210,
+  gateHalfWidth: 150,
+  checkpointIndices: [7, 14, 21, 28, 35, 42],
+  startRowSpacing: 60,
+  startColSpacing: 45,
+});
+
+function generateHarborCenterline(): Vec2[] {
+  const points: Vec2[] = [];
+  const count = 44;
+  for (let i = 0; i < count; i++) {
+    const t = (i / count) * Math.PI * 2;
+    const rx = 600 + Math.sin(t * 2) * 120 + Math.sin(t * 5) * 30;
+    const ry = 360 + Math.cos(t * 3) * 90;
+    points.push({ x: Math.cos(t) * rx, y: Math.sin(t) * ry });
+  }
+  return points;
+}
+
+/** Nighttime harbor circuit: dark water palette with neon dock-light accents. */
+export const harborCircuit: Track = buildTrack({
+  name: 'Nighttime Harbor Circuit',
+  theme: {
+    background: '#0b1a2b',
+    wall: '#12314a',
+    paved: '#1c1c24',
+    laneMarking: 'rgba(255,209,102,0.45)',
+    checkerA: '#f1faee',
+    checkerB: '#e63946',
+  },
+  centerline: generateHarborCenterline(),
+  pavedHalfWidth: 110,
+  hardWallHalfWidth: 220,
+  gateHalfWidth: 155,
+  checkpointIndices: [7, 14, 22, 29, 36, 40],
   startRowSpacing: 60,
   startColSpacing: 45,
 });

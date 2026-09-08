@@ -9,6 +9,7 @@ function straightTrack(overrides: Partial<Track> = {}): Track {
   ];
   return {
     name: 'test-straight',
+    theme: { background: '#000', wall: '#111', paved: '#222', laneMarking: '#333', checkerA: '#fff', checkerB: '#000' },
     centerline,
     pavedHalfWidth: 1000,
     hardWallHalfWidth: 5000,

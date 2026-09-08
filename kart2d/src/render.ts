@@ -28,32 +28,32 @@ function centerlinePath(ctx: CanvasRenderingContext2D, track: Track, camera: Cam
   ctx.closePath();
 }
 
-/** Draws the desert canyon: rock canyon wall, sand shoulder (the off-track slowdown band), then paved road. */
+/** Draws the track surface (off-track wall band, paved road, lane markings) using the track's theme colors. */
 export function drawTrack(ctx: CanvasRenderingContext2D, track: Track, camera: Camera) {
-  ctx.fillStyle = '#5c4325';
+  ctx.fillStyle = track.theme.background;
   ctx.fillRect(0, 0, camera.viewportWidth, camera.viewportHeight);
 
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
 
   centerlinePath(ctx, track, camera);
-  ctx.strokeStyle = '#d9a066';
+  ctx.strokeStyle = track.theme.wall;
   ctx.lineWidth = track.hardWallHalfWidth * 2 * camera.scale;
   ctx.stroke();
 
   centerlinePath(ctx, track, camera);
-  ctx.strokeStyle = '#4a4238';
+  ctx.strokeStyle = track.theme.paved;
   ctx.lineWidth = track.pavedHalfWidth * 2 * camera.scale;
   ctx.stroke();
 
   centerlinePath(ctx, track, camera);
-  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.strokeStyle = track.theme.laneMarking;
   ctx.lineWidth = Math.max(1, 2 * camera.scale);
   ctx.setLineDash([14 * camera.scale, 18 * camera.scale]);
   ctx.stroke();
   ctx.setLineDash([]);
 
-  drawCheckerGate(ctx, track.finishLine, camera);
+  drawCheckerGate(ctx, track.finishLine, camera, track.theme.checkerA, track.theme.checkerB);
 }
 
 /** Item boxes: a spinning-diamond icon, distinct from any kart shape; hidden while on respawn cooldown. */
@@ -109,14 +109,14 @@ export function drawHazards(ctx: CanvasRenderingContext2D, camera: Camera, hazar
   }
 }
 
-function drawCheckerGate(ctx: CanvasRenderingContext2D, gate: Track['finishLine'], camera: Camera) {
+function drawCheckerGate(ctx: CanvasRenderingContext2D, gate: Track['finishLine'], camera: Camera, colorA: string, colorB: string) {
   const a = worldToScreen(camera, gate.a);
   const b = worldToScreen(camera, gate.b);
   const squares = 8;
   for (let i = 0; i < squares; i++) {
     const t0 = i / squares;
     const t1 = (i + 1) / squares;
-    ctx.fillStyle = i % 2 === 0 ? '#f1faee' : '#1d1d1d';
+    ctx.fillStyle = i % 2 === 0 ? colorA : colorB;
     ctx.fillRect(
       a.x + (b.x - a.x) * t0 - 4 * camera.scale,
       a.y + (b.y - a.y) * t0,
