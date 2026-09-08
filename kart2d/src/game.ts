@@ -256,6 +256,16 @@ export class Game {
     };
   }
 
+  /** Test-only browser seam. The entry point exposes this only with ?test=1, to skip a full physical lap count. */
+  testFinishRace() {
+    if (this.finished) return;
+    this.raceState = {
+      ...this.raceState,
+      karts: { ...this.raceState.karts, player: { lapsCompleted: TOTAL_LAPS, checkpointIndex: this.track.totalCheckpoints } },
+    };
+    this.finishRace();
+  }
+
   private finishRace() {
     this.finished = true;
     const order = rankKarts(this.rankingEntries());

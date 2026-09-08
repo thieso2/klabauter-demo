@@ -272,6 +272,7 @@ export const snowyMountain: Track = buildTrack({
   hardWallHalfWidth: 210,
   gateHalfWidth: 150,
   checkpointIndices: [7, 14, 21, 28, 35, 42],
+  itemBoxIndices: [4, 11, 18, 25, 32, 39, 44],
   startRowSpacing: 60,
   startColSpacing: 45,
 });
@@ -304,6 +305,7 @@ export const harborCircuit: Track = buildTrack({
   hardWallHalfWidth: 220,
   gateHalfWidth: 155,
   checkpointIndices: [7, 14, 22, 29, 36, 40],
+  itemBoxIndices: [3, 10, 18, 25, 32, 38, 42],
   startRowSpacing: 60,
   startColSpacing: 45,
 });

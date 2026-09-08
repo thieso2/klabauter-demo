@@ -192,4 +192,10 @@ $('#race-again').addEventListener('click', () => {
   showScreen(racerSelectScreen);
 });
 
+if (new URLSearchParams(location.search).has('test')) {
+  (window as Window & { __turboLoopTest?: unknown }).__turboLoopTest = {
+    finishRace: () => game?.testFinishRace(),
+  };
+}
+
 showScreen(titleScreen);
