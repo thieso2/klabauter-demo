@@ -1,0 +1,126 @@
+* {
+  box-sizing: border-box;
+}
+/* Author rules like `.panel { display: flex }` otherwise beat the UA's `[hidden]` rule on specificity ties. */
+[hidden] {
+  display: none !important;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #1c140b;
+  color: #f4ede4;
+  font-family: system-ui, sans-serif;
+}
+#app {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.panel {
+  max-width: 640px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.8rem;
+  color: #d9a066;
+  margin: 0;
+}
+h1,
+h2 {
+  margin: 0;
+}
+.controls-summary {
+  opacity: 0.85;
+  font-size: 0.9rem;
+}
+button {
+  font: inherit;
+  padding: 10px 22px;
+  border-radius: 8px;
+  border: 1px solid #d9a066;
+  background: #d9a066;
+  color: #1c140b;
+  cursor: pointer;
+}
+button.secondary {
+  background: transparent;
+  color: #f4ede4;
+}
+#racer-options {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.racer-option {
+  background: var(--racer-color, #d9a066);
+  color: #1c140b;
+  min-width: 110px;
+  font-weight: 600;
+}
+#race {
+  position: relative;
+}
+#race-canvas {
+  border: 2px solid #4a4238;
+  border-radius: 6px;
+  display: block;
+}
+#hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+.held-item {
+  width: 26px;
+  height: 26px;
+  display: inline-block;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
+}
+.held-item--none {
+  visibility: hidden;
+}
+.held-item--boost {
+  background: #ffd166;
+  clip-path: polygon(58% 0%, 18% 55%, 44% 55%, 28% 100%, 82% 40%, 50% 40%);
+}
+.held-item--projectile {
+  background: #e63946;
+  border-radius: 50%;
+}
+.held-item--shield {
+  border: 4px solid #48cae4;
+  border-radius: 50%;
+}
+.held-item--hazard {
+  background: #6a4c93;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+#placements,
+#standings {
+  text-align: left;
+  font-size: 1.1rem;
+}
+#standings li.you {
+  color: #d9a066;
+  font-weight: 700;
+}
