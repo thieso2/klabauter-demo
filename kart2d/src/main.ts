@@ -1,6 +1,7 @@
 import './style.css';
 import { Game, type KartId, type RaceView } from './game';
 import { InputState, attachInput } from './input';
+import type { ItemType } from './items';
 import { RACER_DESIGNS, aiDesignsFor, selectableDesigns } from './racers';
 import { desertCanyon } from './track';
 
@@ -22,6 +23,7 @@ root.innerHTML = `
   <div id="hud">
     <span id="lap-counter" data-testid="lap-counter">Lap 1/3</span>
     <span id="position-indicator" data-testid="position">1st</span>
+    <span id="held-item" class="held-item" data-testid="held-item" aria-label="No item held"></span>
   </div>
 </section>
 <section id="results" class="panel" hidden>
@@ -40,7 +42,15 @@ const resultsScreen = $('#results');
 const canvas = $<HTMLCanvasElement>('#race-canvas');
 const lapCounter = $('#lap-counter');
 const positionIndicator = $('#position-indicator');
+const heldItemIndicator = $('#held-item');
 const placementsList = $('#placements');
+
+const ITEM_LABELS: Record<ItemType, string> = {
+  boost: 'Speed Boost',
+  projectile: 'Projectile',
+  shield: 'Shield',
+  hazard: 'Hazard',
+};
 
 const input = new InputState();
 attachInput(window, input);
@@ -82,6 +92,8 @@ function startRace(playerDesignId: string) {
 function onView(view: RaceView) {
   lapCounter.textContent = `Lap ${view.lap}/${view.totalLaps}`;
   positionIndicator.textContent = ordinal(view.position);
+  heldItemIndicator.className = `held-item held-item--${view.heldItem ?? 'none'}`;
+  heldItemIndicator.setAttribute('aria-label', view.heldItem ? `Holding ${ITEM_LABELS[view.heldItem]}` : 'No item held');
   if (view.finished && view.placements) showResults(view.placements);
 }
 

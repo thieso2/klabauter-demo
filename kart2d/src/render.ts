@@ -1,3 +1,4 @@
+import type { Hazard, Projectile } from './items';
 import type { KartState } from './kart';
 import type { RacerDesign } from './racers';
 import type { Track } from './track';
@@ -53,6 +54,59 @@ export function drawTrack(ctx: CanvasRenderingContext2D, track: Track, camera: C
   ctx.setLineDash([]);
 
   drawCheckerGate(ctx, track.finishLine, camera);
+}
+
+/** Item boxes: a spinning-diamond icon, distinct from any kart shape; hidden while on respawn cooldown. */
+export function drawItemBoxes(ctx: CanvasRenderingContext2D, track: Track, camera: Camera, cooldowns: number[]) {
+  track.itemBoxes.forEach((pos, i) => {
+    if (cooldowns[i] > 0) return;
+    const s = worldToScreen(camera, pos);
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(Math.PI / 4);
+    ctx.scale(camera.scale, camera.scale);
+    ctx.fillStyle = '#ffd166';
+    ctx.strokeStyle = '#1c140b';
+    ctx.lineWidth = 3;
+    ctx.fillRect(-13, -13, 26, 26);
+    ctx.strokeRect(-13, -13, 26, 26);
+    ctx.restore();
+  });
+}
+
+/** Forward projectiles: a small red disc. */
+export function drawProjectiles(ctx: CanvasRenderingContext2D, camera: Camera, projectiles: Projectile[]) {
+  for (const p of projectiles) {
+    const s = worldToScreen(camera, p.position);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, Math.max(3, 8 * camera.scale), 0, Math.PI * 2);
+    ctx.fillStyle = '#e63946';
+    ctx.fill();
+  }
+}
+
+/** Dropped hazards: a stationary purple spiked burst. */
+export function drawHazards(ctx: CanvasRenderingContext2D, camera: Camera, hazards: Hazard[]) {
+  for (const hz of hazards) {
+    const s = worldToScreen(camera, hz.position);
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.scale(camera.scale, camera.scale);
+    ctx.beginPath();
+    const spikes = 6;
+    for (let i = 0; i < spikes * 2; i++) {
+      const r = i % 2 === 0 ? 18 : 8;
+      const a = (i / (spikes * 2)) * Math.PI * 2;
+      const x = Math.cos(a) * r;
+      const y = Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#6a4c93';
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 function drawCheckerGate(ctx: CanvasRenderingContext2D, gate: Track['finishLine'], camera: Camera) {
@@ -125,6 +179,14 @@ export function drawKart(ctx: CanvasRenderingContext2D, camera: Camera, kart: Ka
   ctx.fill();
 
   ctx.restore();
+
+  if (kart.shieldActive) {
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 24 * camera.scale, 0, Math.PI * 2);
+    ctx.strokeStyle = '#48cae4';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
 
   if (kart.driftDirection !== 0) {
     const chargeFraction = Math.min(1, kart.driftCharge / 1.5);

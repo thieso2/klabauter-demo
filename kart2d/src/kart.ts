@@ -1,3 +1,4 @@
+import type { ItemType } from './items';
 import { type Track, projectToTrackDetailed } from './track';
 import { type Vec2, add, fromAngle, normalize, scale, sub } from './vec2';
 
@@ -7,8 +8,11 @@ export interface KartState {
   speed: number; // scalar forward speed; negative is reverse
   driftCharge: number; // seconds held in an active drift; 0 when not drifting
   driftDirection: -1 | 0 | 1; // steer direction of the active drift; 0 when not drifting
-  /** Seconds remaining with no steering authority and near-zero speed. Only items (a later slice) set this > 0. */
+  /** Seconds remaining with no steering authority and near-zero speed. Only items set this > 0. */
   spinOutRemaining: number;
+  heldItem: ItemType | null;
+  /** Passive, indefinite until it absorbs one projectile/hazard hit. */
+  shieldActive: boolean;
 }
 
 export interface KartInput {
@@ -39,7 +43,16 @@ export const KART_TUNING = {
 } as const;
 
 export function createKartState(position: Vec2, heading: number): KartState {
-  return { position, heading, speed: 0, driftCharge: 0, driftDirection: 0, spinOutRemaining: 0 };
+  return {
+    position,
+    heading,
+    speed: 0,
+    driftCharge: 0,
+    driftDirection: 0,
+    spinOutRemaining: 0,
+    heldItem: null,
+    shieldActive: false,
+  };
 }
 
 /** Fixed-step movement: deterministic given the same starting state, input, track, and dt. */
@@ -94,7 +107,16 @@ export function stepKart(state: KartState, input: KartInput, track: Track, dt: n
   let position = add(state.position, scale(fromAngle(heading), speed * dt));
   position = clampToHardWall(track, position);
 
-  return { position, heading, speed, driftCharge, driftDirection, spinOutRemaining: 0 };
+  return {
+    position,
+    heading,
+    speed,
+    driftCharge,
+    driftDirection,
+    spinOutRemaining: 0,
+    heldItem: state.heldItem,
+    shieldActive: state.shieldActive,
+  };
 }
 
 function stepSpinningOut(state: KartState, dt: number): KartState {
@@ -108,6 +130,8 @@ function stepSpinningOut(state: KartState, dt: number): KartState {
     driftCharge: 0,
     driftDirection: 0,
     spinOutRemaining: Math.max(0, state.spinOutRemaining - dt),
+    heldItem: state.heldItem,
+    shieldActive: state.shieldActive,
   };
 }
 

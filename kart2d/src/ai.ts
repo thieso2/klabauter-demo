@@ -41,7 +41,8 @@ export function driveAI(track: Track, kart: KartState, rivals: KartState[]): AIO
   const desiredHeading = angleOf(sub(adjustedTarget, kart.position));
   const steerAxis = clamp(angleDelta(kart.heading, desiredHeading) * t.steerGain, -1, 1);
 
-  return { steerAxis, accelerate: true, itemUsePressed: false };
+  // Drop/fire the moment an item is picked up: simple, deterministic, and never inert.
+  return { steerAxis, accelerate: true, itemUsePressed: kart.heldItem !== null };
 }
 
 function closestRivalAhead(

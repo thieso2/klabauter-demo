@@ -15,6 +15,7 @@ function straightTrack(overrides: Partial<Track> = {}): Track {
     checkpoints: [],
     finishLine: { a: { x: 0, y: -10 }, b: { x: 0, y: 10 }, forward: { x: 1, y: 0 } },
     totalCheckpoints: 0,
+    itemBoxes: [],
     startPositions: [{ x: 0, y: 0 }],
     startHeading: 0,
     segmentStart: [0, 4000],
@@ -106,6 +107,14 @@ describe('stepKart', () => {
     expect(next.heading).toBe(spinning.heading);
     expect(next.speed).toBeLessThan(spinning.speed);
     expect(next.spinOutRemaining).toBeCloseTo(0.3 - dt, 5);
+  });
+
+  it('carries heldItem and shieldActive through a normal step unchanged', () => {
+    const track = straightTrack();
+    const state = { ...createKartState({ x: 0, y: 0 }, 0), heldItem: 'boost' as const, shieldActive: true };
+    const next = stepKart(state, accelInput, track, dt);
+    expect(next.heldItem).toBe('boost');
+    expect(next.shieldActive).toBe(true);
   });
 });
 

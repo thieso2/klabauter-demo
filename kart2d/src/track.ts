@@ -17,6 +17,7 @@ export interface Track {
   checkpoints: Gate[]; // ordered gates around the loop, excludes the finish line
   finishLine: Gate;
   totalCheckpoints: number;
+  itemBoxes: Vec2[]; // pickup locations, roughly on the driving line so a lap reliably crosses several
   startPositions: Vec2[];
   startHeading: number; // radians
   segmentStart: number[]; // arc length at centerline[i], same length as centerline
@@ -151,6 +152,7 @@ function buildTrack(opts: {
   hardWallHalfWidth: number;
   gateHalfWidth: number;
   checkpointIndices: number[]; // indices into centerline, excludes 0 (the finish line)
+  itemBoxIndices?: number[]; // indices into centerline where an item box sits
   startRowSpacing: number;
   startColSpacing: number;
 }): Track {
@@ -188,6 +190,7 @@ function buildTrack(opts: {
     checkpoints,
     finishLine,
     totalCheckpoints: checkpoints.length,
+    itemBoxes: (opts.itemBoxIndices ?? []).map((i) => centerline[i]),
     startPositions,
     startHeading: Math.atan2(tangent0.y, tangent0.x),
     segmentStart,
@@ -215,6 +218,7 @@ export const desertCanyon: Track = buildTrack({
   hardWallHalfWidth: 230,
   gateHalfWidth: 160,
   checkpointIndices: [6, 12, 18, 24, 30, 36],
+  itemBoxIndices: [3, 9, 15, 21, 27, 33, 39],
   startRowSpacing: 60,
   startColSpacing: 45,
 });

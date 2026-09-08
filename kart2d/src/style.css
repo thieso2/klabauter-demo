@@ -79,11 +79,38 @@ button.secondary {
   left: 12px;
   right: 12px;
   display: flex;
+  align-items: center;
+  gap: 10px;
   justify-content: space-between;
   font-size: 1.1rem;
   font-weight: 700;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
   pointer-events: none;
+}
+.held-item {
+  width: 26px;
+  height: 26px;
+  display: inline-block;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
+}
+.held-item--none {
+  visibility: hidden;
+}
+.held-item--boost {
+  background: #ffd166;
+  clip-path: polygon(58% 0%, 18% 55%, 44% 55%, 28% 100%, 82% 40%, 50% 40%);
+}
+.held-item--projectile {
+  background: #e63946;
+  border-radius: 50%;
+}
+.held-item--shield {
+  border: 4px solid #48cae4;
+  border-radius: 50%;
+}
+.held-item--hazard {
+  background: #6a4c93;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
 }
 #placements {
   text-align: left;

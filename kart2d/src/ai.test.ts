@@ -17,11 +17,17 @@ describe('driveAI', () => {
     expect(output.steerAxis).toBeGreaterThan(0);
   });
 
-  it('always accelerates and never presses the item button this slice', () => {
+  it('always accelerates and does not press the item button while holding nothing', () => {
     const kart = createKartState(desertCanyon.centerline[0], desertCanyon.startHeading);
     const output = driveAI(desertCanyon, kart, []);
     expect(output.accelerate).toBe(true);
     expect(output.itemUsePressed).toBe(false);
+  });
+
+  it('presses the item button once it is holding an item, so it is never inert', () => {
+    const kart = { ...createKartState(desertCanyon.centerline[0], desertCanyon.startHeading), heldItem: 'boost' as const };
+    const output = driveAI(desertCanyon, kart, []);
+    expect(output.itemUsePressed).toBe(true);
   });
 
   it('adjusts its steering to attempt to overtake a close rival directly ahead', () => {
